@@ -7,7 +7,7 @@ To encourage participation, companies unlock **NFT badges** (Bronze, Silver, Gol
 ---
 
 ## ✨ Features
-- 🌱 **Carbon Credits (ERC-20):** Tokenized proof of eco-friendly actions.  
+- 🌱 **Carbon Credits (ERC-20):** Tokenized proof of eco-friendly actions .Funglible tokens.
 - 🎖️ **EcoBadge NFTs (ERC-721):** Rewards for sustainability milestones.  
 - 📊 **Svelte Dashboard:** Interactive UI with charts and leaderboards.  
 - 🌍 **Public Transparency:** Verifiable records to combat greenwashing.  
