@@ -8,10 +8,12 @@
     "test:watch": "hardhat test --watch",
     "deploy": "hardhat ignition deploy ignition/modules/EcoSystem.ts",
     "deploy:v2": "hardhat ignition deploy ignition/modules/EcoSystemV2.ts",
+    "deploy:counter": "hardhat ignition deploy ignition/modules/Counter.ts",
     "deploy:hardhat": "hardhat ignition deploy ignition/modules/EcoSystemV2.ts --network hardhatMainnet",
     "deploy:sepolia": "hardhat ignition deploy ignition/modules/EcoSystemV2.ts --network sepolia",
     "node": "hardhat node",
-    "verify": "hardhat verify"
+    "verify": "hardhat verify",
+    "get-addresses": "hardhat run scripts/get-deployed-addresses.ts"
   },
   "keywords": [],
   "author": "",
