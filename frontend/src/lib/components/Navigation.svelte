@@ -36,12 +36,13 @@
 		await walletService.disconnect();
 	}
 	
-	const navItems = [
-		{ href: '/', label: 'Dashboard', icon: Home },
-		{ href: '/actions', label: 'Eco Actions', icon: Leaf },
-		{ href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-		{ href: '/badges', label: 'NFT Badges', icon: Award }
-	];
+const navItems = [
+    { href: '/', label: 'Dashboard', icon: Home },
+    { href: '/actions', label: 'Eco Actions', icon: Leaf },
+    { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { href: '/badges', label: 'NFT Badges', icon: Award },
+    { href: '/counter', label: 'Counter', icon: null }
+];
 </script>
 
 <nav class="bg-white shadow-lg border-b border-secondary-200">
@@ -57,20 +58,20 @@
 			
 			<!-- Desktop Navigation -->
 			<div class="hidden md:flex items-center space-x-8">
-				{#each navItems as item}
-					{#if item.icon}
-						<a
-							href={item.href}
-							class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
-								{$page.url.pathname === item.href 
-									? 'text-primary-600 bg-primary-50' 
-									: 'text-secondary-700 hover:text-primary-600 hover:bg-primary-50'}"
-						>
-							<svelte:component this={item.icon} class="h-4 w-4 mr-2" />
-							{item.label}
-						</a>
-					{/if}
-				{/each}
+                {#each navItems as item}
+                    <a
+                        href={item.href}
+                        class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
+                            {$page.url.pathname === item.href 
+                                ? 'text-primary-600 bg-primary-50' 
+                                : 'text-secondary-700 hover:text-primary-600 hover:bg-primary-50'}"
+                    >
+                        {#if item.icon}
+                            <item.icon class="h-4 w-4 mr-2" />
+                        {/if}
+                        {item.label}
+                    </a>
+                {/each}
 			</div>
 			
 			<!-- Wallet Connection -->
@@ -127,20 +128,20 @@
 	{#if isMenuOpen}
 		<div class="md:hidden">
 			<div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-secondary-200">
-				{#each navItems as item}
-					{#if item.icon}
-						<a
-							href={item.href}
-							class="flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-200
-								{$page.url.pathname === item.href 
-									? 'text-primary-600 bg-primary-50' 
-									: 'text-secondary-700 hover:text-primary-600 hover:bg-primary-50'}"
-						>
-							<svelte:component this={item.icon} class="h-5 w-5 mr-3" />
-							{item.label}
-						</a>
-					{/if}
-				{/each}
+                {#each navItems as item}
+                    <a
+                        href={item.href}
+                        class="flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-200
+                            {$page.url.pathname === item.href 
+                                ? 'text-primary-600 bg-primary-50' 
+                                : 'text-secondary-700 hover:text-primary-600 hover:bg-primary-50'}"
+                    >
+                        {#if item.icon}
+                            <item.icon class="h-5 w-5 mr-3" />
+                        {/if}
+                        {item.label}
+                    </a>
+                {/each}
 			</div>
 		</div>
 	{/if}

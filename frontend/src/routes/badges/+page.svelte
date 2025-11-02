@@ -219,11 +219,14 @@
 	<!-- Badge Grid -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 		{#each getFilteredBadges() as badge}
+			{@const Icon = badge.icon}
 			<div class="card {!badge.earned ? 'opacity-60' : ''} hover:shadow-xl transition-shadow duration-300">
 				<div class="relative">
 					<!-- Badge Image/Icon -->
 					<div class="w-full h-48 bg-gradient-to-br {getTierColor(badge.tier)} rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
-						<svelte:component this={badge.icon} class="h-16 w-16 text-white" />
+						{#if Icon}
+							<Icon class="h-16 w-16 text-white" />
+						{/if}
 						{#if !badge.earned}
 							<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
 								<Eye class="h-8 w-8 text-white" />

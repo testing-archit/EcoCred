@@ -67,6 +67,7 @@
 	
 	<div class="space-y-4">
 		{#each recentActions as action}
+			{@const Icon = getStatusIcon(action.status)}
 			<div class="flex items-start space-x-3 p-3 bg-secondary-50 rounded-lg">
 				<div class="flex-shrink-0">
 					<Leaf class="h-5 w-5 text-primary-600" />
@@ -86,7 +87,9 @@
 					</div>
 					<div class="flex items-center mt-2">
 						<div class="badge {getStatusColor(action.status)} flex items-center">
-							<svelte:component this={getStatusIcon(action.status)} class="h-3 w-3 mr-1" />
+							{#if Icon}
+								<Icon class="h-3 w-3 mr-1" />
+							{/if}
 							{action.status}
 						</div>
 					</div>

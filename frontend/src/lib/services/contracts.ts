@@ -1,37 +1,44 @@
 import { ethers } from 'ethers';
 import { walletService } from './wallet';
 
-// Contract addresses (these would be deployed contract addresses)
+// Contract addresses (read from env)
 const CONTRACTS = {
-	CARBON_CREDIT_TOKEN: '0x...', // Replace with actual deployed contract address
-	ECO_BADGE_NFT: '0x...', // Replace with actual deployed contract address
-	ECOLEDGER_CONTRACT: '0x...' // Replace with actual deployed contract address
+    CARBON_CREDIT_TOKEN: import.meta.env.VITE_CARBON_CREDIT_TOKEN as string,
+    ECO_BADGE_NFT: import.meta.env.VITE_ECO_BADGE_NFT as string,
+    ECOLEDGER_CONTRACT: import.meta.env.VITE_ECOLEDGER_CONTRACT as string,
+    COUNTER: import.meta.env.VITE_COUNTER_ADDRESS || '0x0000000000000000000000000000000000000000'
 };
 
-// Contract ABIs (simplified - replace with actual ABIs)
+// Contract ABIs (minimal interfaces)
 const CARBON_CREDIT_ABI = [
 	'function balanceOf(address owner) view returns (uint256)',
 	'function transfer(address to, uint256 amount) returns (bool)',
 	'function approve(address spender, uint256 amount) returns (bool)',
 	'function totalSupply() view returns (uint256)',
-	'event Transfer(address indexed from, address indexed to, uint256 value)'
+	'event Transfer(address indexed from, address indexed to, uint256 value)',
+	'function mint(address to, uint256 amount)'
 ];
 
 const ECO_BADGE_ABI = [
-	'function balanceOf(address owner) view returns (uint256)',
-	'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
-	'function tokenURI(uint256 tokenId) view returns (string)',
-	'function safeMint(address to, string memory uri)',
-	'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
+    'function balanceOf(address owner) view returns (uint256)',
+    'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
+    'function tokenURI(uint256 tokenId) view returns (string)',
+    'function safeMint(address to)',
+    'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
 ];
 
 const ECOLEDGER_ABI = [
-	'function logEcoAction(string memory title, string memory description, uint256 estimatedCredits, string memory location) returns (uint256)',
-	'function verifyAction(uint256 actionId, bool approved, uint256 actualCredits)',
-	'function mintCarbonCredits(address to, uint256 amount)',
-	'function getAction(uint256 actionId) view returns (string memory, string memory, uint256, string memory, bool, uint256)',
-	'event EcoActionLogged(uint256 indexed actionId, address indexed company, string title)',
-	'event ActionVerified(uint256 indexed actionId, bool approved, uint256 credits)'
+    'function logEcoAction(string title, string description, uint256 estimatedCredits, string location) returns (uint256)',
+    'function verifyAction(uint256 actionId, bool approved, uint256 actualCredits)',
+    'function getAction(uint256 actionId) view returns (string title, string description, uint256 estimatedCredits, string location, bool verified, uint256 actualCredits)',
+    'event EcoActionLogged(uint256 indexed actionId, address indexed company, string title)',
+    'event ActionVerified(uint256 indexed actionId, bool approved, uint256 credits)'
+];
+
+const COUNTER_ABI = [
+	'function x() view returns (uint256)',
+	'function inc()',
+	'function incBy(uint256 by)'
 ];
 
 export interface EcoAction {
@@ -61,6 +68,7 @@ class ContractService {
 	private carbonCreditContract: ethers.Contract | null = null;
 	private ecoBadgeContract: ethers.Contract | null = null;
 	private ecoLedgerContract: ethers.Contract | null = null;
+	private counterContract: ethers.Contract | null = null;
 
 	constructor() {
 		// Initialize contracts when wallet connects
@@ -94,12 +102,19 @@ class ContractService {
 			ECOLEDGER_ABI,
 			provider
 		);
+
+		this.counterContract = new ethers.Contract(
+			CONTRACTS.COUNTER,
+			COUNTER_ABI,
+			provider
+		);
 	}
 
 	private clearContracts() {
 		this.carbonCreditContract = null;
 		this.ecoBadgeContract = null;
 		this.ecoLedgerContract = null;
+		this.counterContract = null;
 	}
 
 	public async getCarbonCreditBalance(address: string): Promise<CarbonCreditBalance> {
@@ -272,6 +287,29 @@ class ContractService {
 		
 		// Return a mock action ID
 		return Math.floor(Math.random() * 1000) + 1;
+	}
+
+	// Counter helpers
+	public async getCounter(): Promise<number> {
+		if (!this.counterContract) {
+			throw new Error('Contract not initialized');
+		}
+		const value = await this.counterContract.x();
+		return Number(value);
+	}
+
+	public async incrementCounter(by?: number): Promise<string> {
+		if (!this.counterContract) {
+			throw new Error('Contract not initialized');
+		}
+		const signer = walletService.getSigner();
+		if (!signer) {
+			throw new Error('Wallet not connected');
+		}
+		const contractWithSigner = this.counterContract.connect(signer) as any;
+		const tx = by && by > 0 ? await contractWithSigner.incBy(by) : await contractWithSigner.inc();
+		await tx.wait();
+		return tx.hash as string;
 	}
 }
 

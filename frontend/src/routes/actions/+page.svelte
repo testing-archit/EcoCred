@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { Leaf, Upload, FileText, Calendar, MapPin, DollarSign, CheckCircle, Clock } from 'lucide-svelte';
-	
+    import { Leaf, Upload, FileText, Calendar, MapPin, DollarSign, CheckCircle, Clock } from 'lucide-svelte';
+    import { contractService } from '$lib/services/contracts';
+    import { walletService } from '$lib/services/wallet';
+    
 	let formData = $state({
 		actionType: '',
 		title: '',
@@ -53,8 +55,10 @@
 		}
 	]);
 	
-	let isSubmitting = $state(false);
-	let showSuccess = $state(false);
+    let isSubmitting = $state(false);
+    let showSuccess = $state(false);
+    let lastActionId = $state<number | null>(null);
+    let lastTxHash = $state<string | null>(null);
 	
 	function handleFileUpload(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -87,13 +91,32 @@
 		}
 	}
 	
-	async function submitAction(event: SubmitEvent) {
-		event.preventDefault();
-		isSubmitting = true;
-		
-		// Simulate API call to blockchain
-		await new Promise(resolve => setTimeout(resolve, 2000));
-		
+    async function submitAction(event: SubmitEvent) {
+        event.preventDefault();
+        isSubmitting = true;
+        lastActionId = null;
+        lastTxHash = null;
+
+        try {
+            const state = walletService.getState();
+            if (!state.isConnected) {
+                isSubmitting = false;
+                return;
+            }
+            const actionId = await contractService.logEcoAction(
+                formData.title,
+                formData.description,
+                formData.estimatedCredits,
+                formData.location
+            );
+            lastActionId = actionId;
+            lastTxHash = 'submitted';
+        } catch (e) {
+            console.error('Failed to submit on-chain action', e);
+            isSubmitting = false;
+            return;
+        }
+
 		// Add to recent actions
 		const newAction = {
 			id: recentActions.length + 1,
@@ -295,6 +318,14 @@
 							Submit Eco Action
 						{/if}
 					</button>
+                {#if lastActionId}
+                <div class="text-xs text-secondary-600">
+                    Submitted Action ID: <span class="font-mono">{lastActionId}</span>
+                    {#if lastTxHash}
+                        · Tx: <span class="font-mono">{lastTxHash}</span>
+                    {/if}
+                </div>
+                {/if}
 				</form>
 			</div>
 		</div>
@@ -311,13 +342,14 @@
 								<h4 class="text-sm font-medium text-secondary-900 truncate">
 									{action.title}
 								</h4>
-								<div class="badge {getStatusColor(action.status)} flex items-center ml-2">
-									<svelte:component 
-										this={getStatusIcon(action.status)} 
-										class="h-3 w-3 mr-1" 
-									/>
-									{action.status}
-								</div>
+                                <div class="badge {getStatusColor(action.status)} flex items-center ml-2">
+                                    {#if action.status === 'verified'}
+                                        <CheckCircle class="h-3 w-3 mr-1" />
+                                    {:else}
+                                        <Clock class="h-3 w-3 mr-1" />
+                                    {/if}
+                                    {action.status}
+                                </div>
 							</div>
 							
 							<div class="text-xs text-secondary-600 space-y-1">

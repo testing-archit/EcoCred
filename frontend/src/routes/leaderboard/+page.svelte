@@ -197,12 +197,13 @@
 	<!-- Top 3 Podium -->
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 		{#each companies.slice(0, 3) as company, index}
+			{@const RankIcon = getRankIcon(company.rank)}
 			<div class="card {index === 0 ? 'md:order-2' : index === 1 ? 'md:order-1' : 'md:order-3'}">
 				<div class="text-center">
 					<div class="flex justify-center mb-4">
-						{#if getRankIcon(company.rank)}
+						{#if RankIcon}
 							<div class="w-16 h-16 {getRankColor(company.rank)} rounded-full flex items-center justify-center">
-								<svelte:component this={getRankIcon(company.rank)} class="h-8 w-8" />
+								<RankIcon class="h-8 w-8" />
 							</div>
 						{/if}
 					</div>
