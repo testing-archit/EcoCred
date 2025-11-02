@@ -1,57 +1,205 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# EcoCred Blockchain Contracts
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+A comprehensive blockchain-based carbon credit reward system with advanced features including marketplace, staking, governance, and reputation systems.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## 📋 Contracts Overview
 
-## Project Overview
+### Core Contracts
 
-This example project includes:
+1. **CarbonCreditToken.sol** - ERC20-compatible token for carbon credits
+   - Controlled minting by authorized minter (EcoLedger)
+   - Standard transfer and approval functionality
+   - 18 decimals precision
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+2. **EcoBadgeNFT.sol** - ERC721-compatible NFT for milestone badges
+   - Minted when companies reach credit milestones
+   - Base URI for metadata
+   - Token enumeration support
 
-## Usage
+3. **EcoLedger.sol** - Basic ledger for logging and verifying eco actions
+   - Companies log eco-friendly actions
+   - Admin verification and credit minting
+   - Badge rewards at milestones
 
-### Running Tests
+4. **EcoLedgerV2.sol** - Enhanced ledger with advanced features
+   - Multi-verifier system (requires threshold of verifiers)
+   - Company reputation scoring
+   - Action categories
+   - Reputation-based credit multipliers
 
-To run all the tests in the project, execute the following command:
+### Advanced Contracts
 
-```shell
-npx hardhat test
+5. **CarbonCreditMarketplace.sol** - P2P marketplace for trading credits
+   - Create listings for credit sales
+   - Purchase credits with ETH
+   - Configurable marketplace fees
+   - Escrow functionality
+
+6. **CreditStaking.sol** - Staking mechanism with rewards
+   - Lock credits for specified periods
+   - Earn rewards based on lock duration
+   - Configurable reward rates
+   - Multiple stake positions per user
+
+7. **AccessControl.sol** - Role-based access control
+   - Roles: ADMIN, VERIFIER, MODERATOR
+   - Grant/revoke role functionality
+   - Ownership transfer
+
+8. **Governance.sol** - DAO-style governance
+   - Create proposals
+   - Vote with carbon credits
+   - Execute proposals based on voting results
+   - Configurable quorum and proposal thresholds
+
+9. **Leaderboard.sol** - Ranking system for companies
+   - Tracks top companies by credits and reputation
+   - Updates automatically via ledger events
+   - Query top N companies
+
+## 🚀 Deployment
+
+### Quick Start
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Compile contracts:**
+   ```bash
+   npm run compile
+   ```
+
+3. **Run tests:**
+   ```bash
+   npm run test
+   ```
+
+4. **Deploy to local network:**
+   ```bash
+   npm run deploy:hardhat
+   ```
+
+5. **Deploy to Sepolia testnet:**
+   ```bash
+   npm run deploy:sepolia
+   ```
+
+### Deployment Modules
+
+- **EcoSystem.ts** - Basic deployment (original contracts)
+- **EcoSystemV2.ts** - Full deployment with all advanced contracts
+
+### Configuration
+
+Set environment variables for deployment:
+
+```bash
+export SEPOLIA_RPC_URL="your_rpc_url"
+export SEPOLIA_PRIVATE_KEY="your_private_key"
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+Or use Hardhat config variables (recommended).
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
+## 📜 Scripts
+
+### Utility Scripts
+
+1. **verify-action.ts** - Verify an eco action
+   ```bash
+   npx hardhat run scripts/verify-action.ts --network <network> <ledger_address> <action_id> [approved] [credits]
+   ```
+
+2. **create-listing.ts** - Create marketplace listing
+   ```bash
+   npx hardhat run scripts/create-listing.ts --network <network> <marketplace_address> <token_address> [amount] [price_per_credit]
+   ```
+
+3. **stake-credits.ts** - Stake carbon credits
+   ```bash
+   npx hardhat run scripts/stake-credits.ts --network <network> <staking_address> <token_address> [amount] [lock_days]
+   ```
+
+4. **grant-role.ts** - Grant roles in AccessControl
+   ```bash
+   npx hardhat run scripts/grant-role.ts --network <network> <access_control_address> <target_address> <role>
+   ```
+
+## 🧪 Testing
+
+Comprehensive test suites are available for all contracts:
+
+- `CarbonCreditToken.test.ts` - Token functionality tests
+- `EcoBadgeNFT.test.ts` - NFT functionality tests
+- `EcoLedger.test.ts` - Ledger functionality tests
+
+Run all tests:
+```bash
+npm run test
 ```
 
-### Make a deployment to Sepolia
+## 🏗️ Architecture
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+### Contract Interactions
 
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+```
+AccessControl
+    ↓
+EcoLedgerV2 ←→ CarbonCreditToken
+    ↓              ↓
+Leaderboard    Marketplace
+    ↓              ↓
+Governance     CreditStaking
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+### Key Features
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+1. **Multi-Verification**: Actions require multiple verifiers to reach consensus
+2. **Reputation System**: Companies earn reputation based on verified actions
+3. **Marketplace**: Trade carbon credits peer-to-peer
+4. **Staking**: Lock credits to earn rewards
+5. **Governance**: DAO-style decision making
+6. **Leaderboard**: Competitive ranking system
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+## 🔒 Security Considerations
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+- All contracts use Solidity 0.8.28 (latest stable)
+- Reentrancy guards should be added for production
+- Access control enforced via modifiers
+- Input validation on all public functions
+- Safe math via Solidity 0.8+ built-in checks
+
+## 📝 Notes
+
+- Marketplace fees default to 2.5% (250 basis points)
+- Staking reward rate default to 5% per year (500 basis points)
+- Verification threshold defaults to 2 verifiers
+- Governance voting period defaults to 7 days
+
+## 🔄 Upgrade Path
+
+The contracts are designed to be upgradeable patterns:
+- Consider using proxy patterns for production
+- State migration scripts for major upgrades
+- EcoLedgerV2 can coexist with EcoLedger for gradual migration
+
+## 📚 Documentation
+
+Each contract includes NatSpec documentation. Generate documentation:
+
+```bash
+hardhat docgen
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+## 🤝 Contributing
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+When adding new contracts:
+1. Add comprehensive tests
+2. Update deployment scripts
+3. Add utility scripts for interaction
+4. Update this README
+
+## 📄 License
+
+MIT License - See individual contract headers
