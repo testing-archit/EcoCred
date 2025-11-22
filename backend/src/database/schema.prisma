@@ -1,0 +1,201 @@
+// Prisma schema for EcoCred platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Company profile with extended off-chain data
+model Company {
+  id              String   @id @default(uuid())
+  walletAddress   String   @unique
+  name            String
+  description     String?
+  industry        String?
+  website         String?
+  logoUrl         String?
+  location        String?
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  actions         Action[]
+  verifications   Verification[]
+  listings        Listing[]
+  stakes          Stake[]
+  votes           Vote[]
+  
+  @@index([walletAddress])
+  @@index([verified])
+}
+
+// Eco actions with metadata
+model Action {
+  id              String        @id @default(uuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id])
+  
+  actionType      String        // "tree_planting", "renewable_energy", "recycling", etc.
+  description     String
+  quantity        Int           // e.g., number of trees, kWh of energy
+  unit            String        // "trees", "kWh", "kg", etc.
+  
+  status          ActionStatus  @default(PENDING)
+  creditsAwarded  Int           @default(0)
+  
+  // Blockchain reference
+  txHash          String?       @unique
+  blockNumber     Int?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  documents       Document[]
+  verifications   Verification[]
+  
+  @@index([companyId])
+  @@index([status])
+  @@index([actionType])
+  @@index([createdAt])
+}
+
+enum ActionStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  PROCESSING
+}
+
+// Supporting documents for actions
+model Document {
+  id          String   @id @default(uuid())
+  actionId    String
+  action      Action   @relation(fields: [actionId], references: [id])
+  
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  
+  uploadedAt  DateTime @default(now())
+  
+  @@index([actionId])
+}
+
+// Verification records
+model Verification {
+  id          String   @id @default(uuid())
+  actionId    String
+  action      Action   @relation(fields: [actionId], references: [id])
+  
+  verifierId  String
+  verifier    Company  @relation(fields: [verifierId], references: [id])
+  
+  approved    Boolean
+  comments    String?
+  
+  // Blockchain reference
+  txHash      String?  @unique
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([actionId])
+  @@index([verifierId])
+}
+
+// Marketplace listings
+model Listing {
+  id              String        @id @default(uuid())
+  sellerId        String
+  seller          Company       @relation(fields: [sellerId], references: [id])
+  
+  amount          Int
+  pricePerCredit  String        // Stored as string to preserve precision
+  totalPrice      String
+  
+  status          ListingStatus @default(ACTIVE)
+  
+  buyerAddress    String?
+  
+  // Blockchain reference
+  listingId       Int?          @unique
+  txHash          String?       @unique
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([sellerId])
+  @@index([status])
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}
+
+// Staking records
+model Stake {
+  id              String      @id @default(uuid())
+  stakerId        String
+  staker          Company     @relation(fields: [stakerId], references: [id])
+  
+  amount          Int
+  duration        Int         // in seconds
+  startTime       DateTime
+  endTime         DateTime
+  
+  claimed         Boolean     @default(false)
+  rewardAmount    Int         @default(0)
+  
+  // Blockchain reference
+  stakeId         Int?        @unique
+  txHash          String?     @unique
+  
+  createdAt       DateTime    @default(now())
+  
+  @@index([stakerId])
+  @@index([claimed])
+}
+
+// Governance votes
+model Vote {
+  id          String   @id @default(uuid())
+  proposalId  Int
+  voterId     String
+  voter       Company  @relation(fields: [voterId], references: [id])
+  
+  support     Boolean
+  votingPower Int
+  
+  // Blockchain reference
+  txHash      String?  @unique
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([proposalId, voterId])
+  @@index([proposalId])
+  @@index([voterId])
+}
+
+// Analytics snapshots
+model Analytics {
+  id                    String   @id @default(uuid())
+  
+  totalCompanies        Int
+  totalActions          Int
+  totalCreditsIssued    Int
+  totalBadgesMinted     Int
+  totalStaked           Int
+  totalMarketVolume     String
+  
+  snapshotDate          DateTime @default(now())
+  
+  @@index([snapshotDate])
+}

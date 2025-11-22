@@ -10,16 +10,22 @@
   let isIncrementing = $state(false);
   let incrementBy = $state<number>(1);
   let txHash = $state<string | null>(null);
+  let error = $state<string | null>(null);
 
   let unsubscribe: (() => void) | null = null;
 
   async function loadCounter() {
     if (!walletState.isConnected) return;
     isLoading = true;
+    error = null;
     try {
-      counter = await contractService.getCounter();
-    } catch (err) {
-      console.error(err);
+      const value = await contractService.getCounter();
+      counter = value;
+      console.log('Counter value loaded:', value);
+    } catch (err: any) {
+      console.error('Error loading counter:', err);
+      error = err?.message || 'Failed to load counter value';
+      counter = null;
     }
     isLoading = false;
   }
@@ -27,13 +33,23 @@
   async function doIncrement() {
     if (!walletState.isConnected) return;
     isIncrementing = true;
+    txHash = null;
+    error = null;
     try {
+      console.log('Incrementing counter by:', incrementBy > 1 ? incrementBy : 1);
       txHash = await contractService.incrementCounter(incrementBy > 1 ? incrementBy : undefined);
+      console.log('Transaction hash:', txHash);
+      // Wait a bit for state to propagate, then reload
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Reloading counter after increment...');
       await loadCounter();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error incrementing counter:', err);
+      error = err?.message || 'Failed to increment counter';
+      txHash = null;
+    } finally {
+      isIncrementing = false;
     }
-    isIncrementing = false;
   }
 
   onMount(() => {
@@ -72,7 +88,13 @@
           <div class="flex items-center space-x-2">
             <Hash class="h-5 w-5 text-primary-600" />
             <p class="text-2xl font-semibold text-secondary-900">
-              {#if isLoading}Loading...{:else}{counter}{/if}
+              {#if isLoading}
+                Loading...
+              {:else if counter !== null}
+                {counter}
+              {:else}
+                --
+              {/if}
             </p>
           </div>
         </div>
@@ -97,9 +119,17 @@
         </button>
       </div>
 
+      {#if error}
+        <div class="p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg">
+          <p class="font-semibold">Error:</p>
+          <p class="text-sm">{error}</p>
+        </div>
+      {/if}
+
       {#if txHash}
-        <div class="text-xs text-secondary-600">
-          Tx: <span class="font-mono">{txHash}</span>
+        <div class="p-4 bg-green-50 text-green-700 border border-green-200 rounded-lg">
+          <p class="text-xs font-semibold mb-1">Transaction successful:</p>
+          <p class="text-xs font-mono break-all">{txHash}</p>
         </div>
       {/if}
     </div>

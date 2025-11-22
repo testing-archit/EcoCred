@@ -1,25 +1,32 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Wallet, Leaf, Trophy, Award, Home } from 'lucide-svelte';
+	import { Wallet, Leaf, Trophy, Award, Home, Shield } from 'lucide-svelte';
 	import { walletService, type WalletState } from '$lib/services/wallet';
+	import { authService } from '$lib/services/auth';
+	import { UserRole } from '$lib/services/contracts';
 	import { onMount, onDestroy } from 'svelte';
 	
 	let walletState = $state<WalletState>(walletService.getState());
+	let authState = $state(authService.getState());
 	let isMenuOpen = $state(false);
 	let isConnecting = $state(false);
 	
-	let unsubscribe: (() => void) | null = null;
+	let unsubscribeWallet: (() => void) | null = null;
+	let unsubscribeAuth: (() => void) | null = null;
 	
 	onMount(() => {
-		unsubscribe = walletService.subscribe((state) => {
+		unsubscribeWallet = walletService.subscribe((state) => {
 			walletState = state;
 		});
+		unsubscribeAuth = authService.subscribe((state) => {
+			authState = state;
+		});
+		authService.refreshRole();
 	});
 	
 	onDestroy(() => {
-		if (unsubscribe) {
-			unsubscribe();
-		}
+		if (unsubscribeWallet) unsubscribeWallet();
+		if (unsubscribeAuth) unsubscribeAuth();
 	});
 	
 	async function connectWallet() {
@@ -36,13 +43,17 @@
 		await walletService.disconnect();
 	}
 	
-const navItems = [
-    { href: '/', label: 'Dashboard', icon: Home },
-    { href: '/actions', label: 'Eco Actions', icon: Leaf },
-    { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-    { href: '/badges', label: 'NFT Badges', icon: Award },
-    { href: '/counter', label: 'Counter', icon: null }
-];
+	const navItems = $derived.by(() => {
+		const isVerifier = authState.role === UserRole.ADMIN || authState.role === UserRole.VERIFIER;
+		return [
+			{ href: '/', label: 'Dashboard', icon: Home },
+			{ href: '/actions', label: 'Eco Actions', icon: Leaf },
+			{ href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+			{ href: '/badges', label: 'NFT Badges', icon: Award },
+			...(isVerifier ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+			{ href: '/counter', label: 'Counter', icon: null }
+		];
+	});
 </script>
 
 <nav class="bg-white shadow-lg border-b border-secondary-200">

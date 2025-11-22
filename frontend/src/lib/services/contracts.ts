@@ -6,6 +6,7 @@ const CONTRACTS = {
     CARBON_CREDIT_TOKEN: import.meta.env.VITE_CARBON_CREDIT_TOKEN as string,
     ECO_BADGE_NFT: import.meta.env.VITE_ECO_BADGE_NFT as string,
     ECOLEDGER_CONTRACT: import.meta.env.VITE_ECOLEDGER_CONTRACT as string,
+    ACCESS_CONTROL: import.meta.env.VITE_ACCESS_CONTROL as string,
     COUNTER: import.meta.env.VITE_COUNTER_ADDRESS || '0x0000000000000000000000000000000000000000'
 };
 
@@ -31,6 +32,8 @@ const ECOLEDGER_ABI = [
     'function logEcoAction(string title, string description, uint256 estimatedCredits, string location) returns (uint256)',
     'function verifyAction(uint256 actionId, bool approved, uint256 actualCredits)',
     'function getAction(uint256 actionId) view returns (string title, string description, uint256 estimatedCredits, string location, bool verified, uint256 actualCredits)',
+    'function actionCount() view returns (uint256)',
+    'function owner() view returns (address)',
     'event EcoActionLogged(uint256 indexed actionId, address indexed company, string title)',
     'event ActionVerified(uint256 indexed actionId, bool approved, uint256 credits)'
 ];
@@ -39,6 +42,16 @@ const COUNTER_ABI = [
 	'function x() view returns (uint256)',
 	'function inc()',
 	'function incBy(uint256 by)'
+];
+
+const ACCESS_CONTROL_ABI = [
+	'function hasRole(address account, uint8 role) view returns (bool)',
+	'function roles(address account) view returns (uint8)',
+	'function owner() view returns (address)'
+];
+
+const ECOLEDGER_OWNER_ABI = [
+	'function owner() view returns (address)'
 ];
 
 export interface EcoAction {
@@ -64,11 +77,20 @@ export interface EcoBadge {
 	name: string;
 }
 
+export enum UserRole {
+	NONE = 0,
+	ADMIN = 1,
+	VERIFIER = 2,
+	MODERATOR = 3,
+	COMPANY = 4 // Regular company user (no special role)
+}
+
 class ContractService {
 	private carbonCreditContract: ethers.Contract | null = null;
 	private ecoBadgeContract: ethers.Contract | null = null;
 	private ecoLedgerContract: ethers.Contract | null = null;
 	private counterContract: ethers.Contract | null = null;
+	private accessControlContract: ethers.Contract | null = null;
 
 	constructor() {
 		// Initialize contracts when wallet connects
@@ -83,31 +105,59 @@ class ContractService {
 
 	private initializeContracts() {
 		const provider = walletService.getProvider();
-		if (!provider) return;
+		if (!provider) {
+			console.warn('Provider not available, cannot initialize contracts');
+			return;
+		}
 
-		this.carbonCreditContract = new ethers.Contract(
-			CONTRACTS.CARBON_CREDIT_TOKEN,
-			CARBON_CREDIT_ABI,
-			provider
-		);
+		console.log('Initializing contracts with provider...');
+		console.log('Counter address:', CONTRACTS.COUNTER);
 
-		this.ecoBadgeContract = new ethers.Contract(
-			CONTRACTS.ECO_BADGE_NFT,
-			ECO_BADGE_ABI,
-			provider
-		);
+		if (CONTRACTS.CARBON_CREDIT_TOKEN) {
+			this.carbonCreditContract = new ethers.Contract(
+				CONTRACTS.CARBON_CREDIT_TOKEN,
+				CARBON_CREDIT_ABI,
+				provider
+			);
+		}
 
-		this.ecoLedgerContract = new ethers.Contract(
-			CONTRACTS.ECOLEDGER_CONTRACT,
-			ECOLEDGER_ABI,
-			provider
-		);
+		if (CONTRACTS.ECO_BADGE_NFT) {
+			this.ecoBadgeContract = new ethers.Contract(
+				CONTRACTS.ECO_BADGE_NFT,
+				ECO_BADGE_ABI,
+				provider
+			);
+		}
 
-		this.counterContract = new ethers.Contract(
-			CONTRACTS.COUNTER,
-			COUNTER_ABI,
-			provider
-		);
+		if (CONTRACTS.ECOLEDGER_CONTRACT) {
+			this.ecoLedgerContract = new ethers.Contract(
+				CONTRACTS.ECOLEDGER_CONTRACT,
+				ECOLEDGER_ABI,
+				provider
+			);
+		}
+
+		if (CONTRACTS.COUNTER && CONTRACTS.COUNTER !== '0x0000000000000000000000000000000000000000') {
+			this.counterContract = new ethers.Contract(
+				CONTRACTS.COUNTER,
+				COUNTER_ABI,
+				provider
+			);
+			console.log('Counter contract initialized at:', CONTRACTS.COUNTER);
+		} else {
+			console.warn('Counter contract address not set or invalid');
+		}
+
+		if (CONTRACTS.ACCESS_CONTROL && CONTRACTS.ACCESS_CONTROL !== '0x0000000000000000000000000000000000000000') {
+			this.accessControlContract = new ethers.Contract(
+				CONTRACTS.ACCESS_CONTROL,
+				ACCESS_CONTROL_ABI,
+				provider
+			);
+			console.log('AccessControl contract initialized at:', CONTRACTS.ACCESS_CONTROL);
+		} else {
+			console.warn('AccessControl contract address not set or invalid');
+		}
 	}
 
 	private clearContracts() {
@@ -115,6 +165,7 @@ class ContractService {
 		this.ecoBadgeContract = null;
 		this.ecoLedgerContract = null;
 		this.counterContract = null;
+		this.accessControlContract = null;
 	}
 
 	public async getCarbonCreditBalance(address: string): Promise<CarbonCreditBalance> {
@@ -291,25 +342,197 @@ class ContractService {
 
 	// Counter helpers
 	public async getCounter(): Promise<number> {
-		if (!this.counterContract) {
-			throw new Error('Contract not initialized');
+		const counterAddress = CONTRACTS.COUNTER;
+		if (!counterAddress || counterAddress === '0x0000000000000000000000000000000000000000') {
+			throw new Error('Counter contract address not set. Please set VITE_COUNTER_ADDRESS in your .env.local file.');
 		}
-		const value = await this.counterContract.x();
-		return Number(value);
+
+		const provider = walletService.getProvider();
+		if (!provider) {
+			throw new Error('Wallet provider not available. Please connect your wallet.');
+		}
+
+		// Create a fresh contract instance to ensure we're using the current provider
+		const counterContract = new ethers.Contract(
+			counterAddress,
+			COUNTER_ABI,
+			provider
+		);
+
+		try {
+			// First, verify the contract has code at this address
+			const code = await provider.getCode(counterAddress);
+			if (!code || code === '0x') {
+				throw new Error(`No contract found at address ${counterAddress}. Make sure the contract is deployed and you're on the correct network.`);
+			}
+
+			console.log('Reading counter from address:', counterAddress);
+			const value = await counterContract.x();
+			const numValue = Number(value);
+			console.log('Counter value read successfully:', numValue);
+			return numValue;
+		} catch (error: any) {
+			console.error('Error reading counter:', error);
+			if (error?.code === 'CALL_EXCEPTION' || error?.code === 'BAD_DATA') {
+				throw new Error(`Failed to read counter. The contract might not exist at address ${counterAddress}, you might be on the wrong network, or the contract ABI might be incorrect.`);
+			}
+			throw new Error(`Failed to read counter: ${error?.message || 'Unknown error'}`);
+		}
 	}
 
 	public async incrementCounter(by?: number): Promise<string> {
-		if (!this.counterContract) {
-			throw new Error('Contract not initialized');
+		const counterAddress = CONTRACTS.COUNTER;
+		if (!counterAddress || counterAddress === '0x0000000000000000000000000000000000000000') {
+			throw new Error('Counter contract address not set. Please set VITE_COUNTER_ADDRESS in your .env.local file.');
 		}
+
 		const signer = walletService.getSigner();
 		if (!signer) {
 			throw new Error('Wallet not connected');
 		}
-		const contractWithSigner = this.counterContract.connect(signer) as any;
-		const tx = by && by > 0 ? await contractWithSigner.incBy(by) : await contractWithSigner.inc();
-		await tx.wait();
-		return tx.hash as string;
+
+		// Create a fresh contract instance with the signer
+		const counterContract = new ethers.Contract(
+			counterAddress,
+			COUNTER_ABI,
+			signer
+		);
+
+		try {
+			const tx = by && by > 0 ? await counterContract.incBy(by) : await counterContract.inc();
+			const receipt = await tx.wait();
+			if (!receipt) {
+				throw new Error('Transaction failed');
+			}
+			console.log('Counter incremented successfully. Transaction hash:', tx.hash);
+			return tx.hash as string;
+		} catch (error: any) {
+			console.error('Error incrementing counter:', error);
+			throw error;
+		}
+	}
+
+	// Role checking functions
+	public async getUserRole(address: string): Promise<UserRole> {
+		// First check AccessControl if available
+		if (this.accessControlContract && CONTRACTS.ACCESS_CONTROL) {
+			try {
+				const adminRole = await this.accessControlContract.hasRole(address, UserRole.ADMIN);
+				if (adminRole) return UserRole.ADMIN;
+				
+				const verifierRole = await this.accessControlContract.hasRole(address, UserRole.VERIFIER);
+				if (verifierRole) return UserRole.VERIFIER;
+				
+				const moderatorRole = await this.accessControlContract.hasRole(address, UserRole.MODERATOR);
+				if (moderatorRole) return UserRole.MODERATOR;
+			} catch (error) {
+				console.warn('Error checking AccessControl roles:', error);
+			}
+		}
+
+		// Fallback: Check if user is owner of EcoLedger (for backward compatibility)
+		if (this.ecoLedgerContract && CONTRACTS.ECOLEDGER_CONTRACT) {
+			try {
+				const ledgerContract = new ethers.Contract(
+					CONTRACTS.ECOLEDGER_CONTRACT,
+					ECOLEDGER_OWNER_ABI,
+					walletService.getProvider()
+				);
+				const owner = await ledgerContract.owner();
+				if (owner.toLowerCase() === address.toLowerCase()) {
+					return UserRole.ADMIN; // Owner is treated as admin
+				}
+			} catch (error) {
+				console.warn('Error checking EcoLedger owner:', error);
+			}
+		}
+
+		return UserRole.COMPANY; // Default to company role
+	}
+
+	public async isAdmin(address: string): Promise<boolean> {
+		const role = await this.getUserRole(address);
+		return role === UserRole.ADMIN;
+	}
+
+	public async isVerifier(address: string): Promise<boolean> {
+		const role = await this.getUserRole(address);
+		return role === UserRole.ADMIN || role === UserRole.VERIFIER;
+	}
+
+	// Get all actions (for admin dashboard)
+	public async getAllActions(): Promise<EcoAction[]> {
+		if (!this.ecoLedgerContract) {
+			throw new Error('EcoLedger contract not initialized');
+		}
+
+		try {
+			// We need to get actionCount first, but it's not in the ABI
+			// For now, we'll need to add it or use events
+			// This is a simplified version - in production, you'd query events
+			const actions: EcoAction[] = [];
+			
+			// Try to get actionCount if available
+			try {
+				const actionCountContract = new ethers.Contract(
+					CONTRACTS.ECOLEDGER_CONTRACT,
+					ECOLEDGER_ABI,
+					walletService.getProvider()
+				);
+				const count = await actionCountContract.actionCount();
+				const countNum = Number(count);
+
+				// Fetch all actions
+				for (let i = 1; i <= countNum; i++) {
+					try {
+						const action = await this.getEcoAction(i);
+						actions.push(action);
+					} catch (error) {
+						// Action might not exist, skip
+						console.warn(`Action ${i} not found`);
+					}
+				}
+			} catch (error) {
+				console.warn('Could not get actionCount, returning empty array');
+			}
+
+			return actions;
+		} catch (error: any) {
+			console.error('Error getting all actions:', error);
+			throw new Error(`Failed to get actions: ${error?.message || 'Unknown error'}`);
+		}
+	}
+
+	// Verify action (admin/verifier only)
+	public async verifyAction(actionId: number, approved: boolean, actualCredits: number): Promise<string> {
+		if (!this.ecoLedgerContract) {
+			throw new Error('EcoLedger contract not initialized');
+		}
+
+		const signer = walletService.getSigner();
+		if (!signer) {
+			throw new Error('Wallet not connected');
+		}
+
+		const address = await signer.getAddress();
+		const isAdminOrVerifier = await this.isVerifier(address);
+		if (!isAdminOrVerifier) {
+			throw new Error('Only admins and verifiers can verify actions');
+		}
+
+		try {
+			const contractWithSigner = this.ecoLedgerContract.connect(signer) as any;
+			const tx = await contractWithSigner.verifyAction(actionId, approved, actualCredits);
+			const receipt = await tx.wait();
+			if (!receipt) {
+				throw new Error('Transaction failed');
+			}
+			console.log('Action verified successfully. Transaction hash:', tx.hash);
+			return tx.hash as string;
+		} catch (error: any) {
+			console.error('Error verifying action:', error);
+			throw error;
+		}
 	}
 }
 
