@@ -57,6 +57,46 @@ A comprehensive blockchain-based carbon credit reward system with advanced featu
    - Updates automatically via ledger events
    - Query top N companies
 
+### Security & Utility Contracts
+
+10. **ReentrancyGuard.sol** - Protection against reentrancy attacks
+    - Simple reentrancy guard implementation
+    - Used by marketplace, staking, and other contracts
+
+11. **Pausable.sol** - Emergency pause functionality
+    - Allows owner to pause contract operations
+    - Critical for emergency situations
+
+12. **TimelockController.sol** - Time-delayed execution for critical operations
+    - Adds delay before executing critical operations
+    - Enhances security for admin functions
+
+### Enhanced Features (V3)
+
+13. **CreditRetirement.sol** - Carbon credit retirement and burning mechanism
+    - Permanently retire/burn carbon credits to offset emissions
+    - Certificate-based retirement tracking
+    - Verifier approval system
+    - Prevents duplicate certificate usage
+
+14. **CreditExpiration.sol** - Credit expiration and decay mechanism
+    - Time-based credit expiration
+    - Grace period for expired credits
+    - Automatic expiration checking
+    - Batch expiration processing
+
+15. **BatchOperations.sol** - Gas-efficient batch operations
+    - Batch transfers to multiple addresses
+    - Batch action logging
+    - Batch marketplace listings
+    - Batch staking/unstaking
+
+16. **Analytics.sol** - Comprehensive platform analytics
+    - Platform-wide statistics
+    - Company-specific analytics
+    - Credit distribution tracking
+    - Action statistics
+
 ## 🚀 Deployment
 
 ### Quick Start
@@ -78,18 +118,21 @@ A comprehensive blockchain-based carbon credit reward system with advanced featu
 
 4. **Deploy to local network:**
    ```bash
-   npm run deploy:hardhat
+   npm run deploy:hardhat        # V2 deployment
+   npm run deploy:hardhat:v3     # V3 deployment (recommended)
    ```
 
 5. **Deploy to Sepolia testnet:**
    ```bash
-   npm run deploy:sepolia
+   npm run deploy:sepolia        # V2 deployment
+   npm run deploy:sepolia:v3     # V3 deployment (recommended)
    ```
 
 ### Deployment Modules
 
 - **EcoSystem.ts** - Basic deployment (original contracts)
 - **EcoSystemV2.ts** - Full deployment with all advanced contracts
+- **EcoSystemV3.ts** - Enhanced deployment with security features and new contracts (recommended)
 
 ### Configuration
 
@@ -126,6 +169,26 @@ Or use Hardhat config variables (recommended).
    npx hardhat run scripts/grant-role.ts --network <network> <access_control_address> <target_address> <role>
    ```
 
+5. **retire-credits.ts** - Retire/burn carbon credits
+   ```bash
+   npx hardhat run scripts/retire-credits.ts --network <network> <retirement_address> [amount] [reason] [certificate_id]
+   ```
+
+6. **batch-transfer.ts** - Batch transfer credits to multiple addresses
+   ```bash
+   npx hardhat run scripts/batch-transfer.ts --network <network> <batch_ops_address> <recipient1> <recipient2> ... [amount1] [amount2] ...
+   ```
+
+7. **check-expiration.ts** - Check and expire credits
+   ```bash
+   npx hardhat run scripts/check-expiration.ts --network <network> <expiration_address> <holder_address>
+   ```
+
+8. **get-analytics.ts** - Get platform and company analytics
+   ```bash
+   npx hardhat run scripts/get-analytics.ts --network <network> <analytics_address> [company_address]
+   ```
+
 ## 🧪 Testing
 
 Comprehensive test suites are available for all contracts:
@@ -157,18 +220,27 @@ Governance     CreditStaking
 
 1. **Multi-Verification**: Actions require multiple verifiers to reach consensus
 2. **Reputation System**: Companies earn reputation based on verified actions
-3. **Marketplace**: Trade carbon credits peer-to-peer
-4. **Staking**: Lock credits to earn rewards
+3. **Marketplace**: Trade carbon credits peer-to-peer (with reentrancy protection and pause)
+4. **Staking**: Lock credits to earn rewards (with reentrancy protection and pause)
 5. **Governance**: DAO-style decision making
 6. **Leaderboard**: Competitive ranking system
+7. **Credit Retirement**: Permanently burn credits to offset emissions
+8. **Credit Expiration**: Time-based credit validity with grace periods
+9. **Batch Operations**: Gas-efficient batch transfers and actions
+10. **Analytics**: Comprehensive platform and company statistics
+11. **Timelock**: Delayed execution for critical operations
+12. **Enhanced Security**: Reentrancy guards and pause functionality throughout
 
 ## 🔒 Security Considerations
 
 - All contracts use Solidity 0.8.28 (latest stable)
-- Reentrancy guards should be added for production
+- **Reentrancy guards** implemented in marketplace, staking, retirement, and expiration contracts
+- **Pausable functionality** for emergency stops in marketplace and staking
+- **Timelock controller** for critical operations
 - Access control enforced via modifiers
 - Input validation on all public functions
 - Safe math via Solidity 0.8+ built-in checks
+- Burn functionality for permanent credit removal
 
 ## 📝 Notes
 
@@ -176,6 +248,10 @@ Governance     CreditStaking
 - Staking reward rate default to 5% per year (500 basis points)
 - Verification threshold defaults to 2 verifiers
 - Governance voting period defaults to 7 days
+- Credit expiration period defaults to 1 year
+- Grace period for expired credits defaults to 30 days
+- Timelock delay defaults to 2 days
+- Batch operations limited to 50 transfers, 20 actions, 10 listings/stakes per transaction
 
 ## 🔄 Upgrade Path
 

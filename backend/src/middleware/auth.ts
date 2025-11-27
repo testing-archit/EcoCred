@@ -3,15 +3,25 @@ import jwt from 'jsonwebtoken';
 import { ethers } from 'ethers';
 import { AppError } from './errorHandler.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../config/app.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = config.JWT_SECRET;
 
 export interface AuthRequest extends Request {
     user?: {
-        walletAddress: string;
-        role?: string;
+        userId: string;
+        walletAddress?: string;
+        role: string;
     };
 }
+
+export const getAuthenticatedWallet = (req: AuthRequest): string => {
+    const wallet = req.user?.walletAddress;
+    if (!wallet) {
+        throw new AppError('Wallet authentication required', 401);
+    }
+    return wallet.toLowerCase();
+};
 
 // Verify JWT token
 export const authenticateToken = (
@@ -27,8 +37,12 @@ export const authenticateToken = (
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { walletAddress: string; role?: string };
-        req.user = decoded;
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role: string; walletAddress?: string };
+        req.user = {
+            userId: decoded.userId,
+            role: decoded.role,
+            walletAddress: decoded.walletAddress
+        };
         next();
     } catch (error) {
         throw new AppError('Invalid or expired token', 403);
@@ -50,10 +64,10 @@ export const verifySignature = async (
     }
 };
 
-// Generate JWT token
-export const generateToken = (walletAddress: string, role?: string): string => {
+// Generate JWT token with userId and role
+export const generateToken = (userId: string, role: string, walletAddress?: string): string => {
     return jwt.sign(
-        { walletAddress, role },
+        { userId, role, walletAddress },
         JWT_SECRET,
         { expiresIn: '7d' }
     );
@@ -64,7 +78,7 @@ export const generateNonceMessage = (walletAddress: string, nonce: string): stri
     return `Sign this message to authenticate with EcoCred:\n\nWallet: ${walletAddress}\nNonce: ${nonce}\n\nThis request will not trigger a blockchain transaction or cost any gas fees.`;
 };
 
-// Optional: Role-based access control
+// Role-based access control middleware
 export const requireRole = (roles: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction) => {
         if (!req.user) {
@@ -78,3 +92,4 @@ export const requireRole = (roles: string[]) => {
         }
     };
 };
+

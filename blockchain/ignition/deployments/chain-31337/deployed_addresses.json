@@ -1,0 +1,23 @@
+{
+  "EcoSystemV2Module#AccessControl": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "EcoSystemV2Module#CarbonCreditToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "EcoSystemV2Module#EcoBadgeNFT": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "EcoSystemV2Module#CarbonCreditMarketplace": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "EcoSystemV2Module#CreditStaking": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "EcoSystemV2Module#EcoLedgerV2": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "EcoSystemV2Module#Governance": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+  "EcoSystemV2Module#Leaderboard": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  "EcoSystemV3Module#AccessControl": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "EcoSystemV3Module#CarbonCreditToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "EcoSystemV3Module#EcoBadgeNFT": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "EcoSystemV3Module#CarbonCreditMarketplace": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "EcoSystemV3Module#CreditExpiration": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "EcoSystemV3Module#CreditRetirement": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "EcoSystemV3Module#CreditStaking": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+  "EcoSystemV3Module#EcoLedgerV2": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+  "EcoSystemV3Module#Governance": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  "EcoSystemV3Module#TimelockController": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+  "EcoSystemV3Module#Analytics": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+  "EcoSystemV3Module#BatchOperations": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+  "EcoSystemV3Module#Leaderboard": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+}

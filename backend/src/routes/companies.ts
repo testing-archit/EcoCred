@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { body, query, validationResult } from 'express-validator';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest, getAuthenticatedWallet } from '../middleware/auth.js';
 import prisma from '../database/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -49,8 +49,37 @@ router.get(
             prisma.company.count({ where })
         ]);
 
+        // Get stats for all companies at once (more efficient)
+        const companyIds = companies.map(c => c.id);
+        const [actionsCounts, creditsTotals] = await Promise.all([
+            prisma.action.groupBy({
+                by: ['companyId'],
+                where: { companyId: { in: companyIds } },
+                _count: { id: true }
+            }),
+            prisma.action.groupBy({
+                by: ['companyId'],
+                where: { 
+                    companyId: { in: companyIds },
+                    status: 'VERIFIED'
+                },
+                _sum: { creditsAwarded: true }
+            })
+        ]);
+
+        // Create lookup maps
+        const actionsMap = new Map(actionsCounts.map(a => [a.companyId, a._count.id]));
+        const creditsMap = new Map(creditsTotals.map(c => [c.companyId, c._sum.creditsAwarded || 0]));
+
+        // Add computed fields for frontend compatibility
+        const companiesWithStats = companies.map(company => ({
+            ...company,
+            totalActions: actionsMap.get(company.id) || 0,
+            totalCredits: creditsMap.get(company.id) || 0
+        }));
+
         res.json({
-            companies,
+            companies: companiesWithStats,
             pagination: {
                 page,
                 limit,
@@ -117,7 +146,7 @@ router.post(
         }
 
         const { name, description, industry, website, location } = req.body;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const walletAddress = getAuthenticatedWallet(req);
 
         // Check if company already exists
         const existing = await prisma.company.findUnique({
@@ -162,7 +191,7 @@ router.put(
         }
 
         const { id } = req.params;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const walletAddress = getAuthenticatedWallet(req);
 
         // Verify ownership
         const company = await prisma.company.findUnique({ where: { id } });

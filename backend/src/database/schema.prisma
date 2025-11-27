@@ -6,59 +6,102 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://neondb_owner:npg_ezJ1TOQbl7NB@ep-solitary-field-a1tnzlw1-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+}
+
+// User roles enum
+enum UserRole {
+  COMPANY
+  VERIFIER
+  ADMIN
+  AUDITOR
+}
+
+// User authentication model (supports both wallet and email/password)
+model User {
+  id           String   @id @default(uuid())
+  email        String?  @unique
+  passwordHash String?
+  role         UserRole @default(COMPANY)
+
+  // Optional wallet linkage
+  walletAddress String? @unique
+
+  // Email verification
+  emailVerified     Boolean @default(false)
+  verificationToken String?
+
+  // Optional company linkage
+  companyId String?  @unique
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([walletAddress])
+  @@index([role])
 }
 
 // Company profile with extended off-chain data
 model Company {
-  id              String   @id @default(uuid())
-  walletAddress   String   @unique
-  name            String
-  description     String?
-  industry        String?
-  website         String?
-  logoUrl         String?
-  location        String?
-  verified        Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id             String    @id @default(uuid())
+  walletAddress  String    @unique
+  name           String
+  description    String?
+  industry       String?
+  industryId     String?
+  industryRecord Industry? @relation("CompanyIndustry", fields: [industryId], references: [id])
+  website        String?
+  logoUrl        String?
+  location       String?
+  verified       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // User linkage (optional - for email/password auth)
+  user User?
+
   // Relations
-  actions         Action[]
-  verifications   Verification[]
-  listings        Listing[]
-  stakes          Stake[]
-  votes           Vote[]
-  
+  actions       Action[]
+  verifications Verification[]
+  listings      Listing[]
+  stakes        Stake[]
+  votes         Vote[]
+  earnedBadges  EarnedBadge[]
+  leaderboard   Leaderboard[]
+
   @@index([walletAddress])
   @@index([verified])
+  @@index([industryId])
 }
 
 // Eco actions with metadata
 model Action {
-  id              String        @id @default(uuid())
-  companyId       String
-  company         Company       @relation(fields: [companyId], references: [id])
-  
-  actionType      String        // "tree_planting", "renewable_energy", "recycling", etc.
-  description     String
-  quantity        Int           // e.g., number of trees, kWh of energy
-  unit            String        // "trees", "kWh", "kg", etc.
-  
-  status          ActionStatus  @default(PENDING)
-  creditsAwarded  Int           @default(0)
-  
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  actionType  String // "tree_planting", "renewable_energy", "recycling", etc. (references ActionType.type)
+  description String
+  quantity    Int // e.g., number of trees, kWh of energy
+  unit        String // "trees", "kWh", "kg", etc.
+
+  status         ActionStatus @default(PENDING)
+  creditsAwarded Int          @default(0)
+
   // Blockchain reference
-  txHash          String?       @unique
-  blockNumber     Int?
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  txHash             String? @unique
+  blockNumber        Int?
+  blockchainActionId Int? // Action ID from EcoLedgerV2 contract
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  documents       Document[]
-  verifications   Verification[]
-  
+  documents     Document[]
+  verifications Verification[]
+
   @@index([companyId])
   @@index([status])
   @@index([actionType])
@@ -74,62 +117,62 @@ enum ActionStatus {
 
 // Supporting documents for actions
 model Document {
-  id          String   @id @default(uuid())
-  actionId    String
-  action      Action   @relation(fields: [actionId], references: [id])
-  
-  fileName    String
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  
-  uploadedAt  DateTime @default(now())
-  
+  id       String @id @default(uuid())
+  actionId String
+  action   Action @relation(fields: [actionId], references: [id])
+
+  fileName String
+  fileUrl  String
+  fileType String
+  fileSize Int
+
+  uploadedAt DateTime @default(now())
+
   @@index([actionId])
 }
 
 // Verification records
 model Verification {
-  id          String   @id @default(uuid())
-  actionId    String
-  action      Action   @relation(fields: [actionId], references: [id])
-  
-  verifierId  String
-  verifier    Company  @relation(fields: [verifierId], references: [id])
-  
-  approved    Boolean
-  comments    String?
-  
+  id       String @id @default(uuid())
+  actionId String
+  action   Action @relation(fields: [actionId], references: [id])
+
+  verifierId String
+  verifier   Company @relation(fields: [verifierId], references: [id])
+
+  approved Boolean
+  comments String?
+
   // Blockchain reference
-  txHash      String?  @unique
-  
-  createdAt   DateTime @default(now())
-  
+  txHash String? @unique
+
+  createdAt DateTime @default(now())
+
   @@index([actionId])
   @@index([verifierId])
 }
 
 // Marketplace listings
 model Listing {
-  id              String        @id @default(uuid())
-  sellerId        String
-  seller          Company       @relation(fields: [sellerId], references: [id])
-  
-  amount          Int
-  pricePerCredit  String        // Stored as string to preserve precision
-  totalPrice      String
-  
-  status          ListingStatus @default(ACTIVE)
-  
-  buyerAddress    String?
-  
+  id       String  @id @default(uuid())
+  sellerId String
+  seller   Company @relation(fields: [sellerId], references: [id])
+
+  amount         Int
+  pricePerCredit String // Stored as string to preserve precision
+  totalPrice     String
+
+  status ListingStatus @default(ACTIVE)
+
+  buyerAddress String?
+
   // Blockchain reference
-  listingId       Int?          @unique
-  txHash          String?       @unique
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  listingId Int?    @unique
+  txHash    String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([sellerId])
   @@index([status])
 }
@@ -142,43 +185,43 @@ enum ListingStatus {
 
 // Staking records
 model Stake {
-  id              String      @id @default(uuid())
-  stakerId        String
-  staker          Company     @relation(fields: [stakerId], references: [id])
-  
-  amount          Int
-  duration        Int         // in seconds
-  startTime       DateTime
-  endTime         DateTime
-  
-  claimed         Boolean     @default(false)
-  rewardAmount    Int         @default(0)
-  
+  id       String  @id @default(uuid())
+  stakerId String
+  staker   Company @relation(fields: [stakerId], references: [id])
+
+  amount    Int
+  duration  Int // in seconds
+  startTime DateTime
+  endTime   DateTime
+
+  claimed      Boolean @default(false)
+  rewardAmount Int     @default(0)
+
   // Blockchain reference
-  stakeId         Int?        @unique
-  txHash          String?     @unique
-  
-  createdAt       DateTime    @default(now())
-  
+  stakeId Int?    @unique
+  txHash  String? @unique
+
+  createdAt DateTime @default(now())
+
   @@index([stakerId])
   @@index([claimed])
 }
 
 // Governance votes
 model Vote {
-  id          String   @id @default(uuid())
-  proposalId  Int
-  voterId     String
-  voter       Company  @relation(fields: [voterId], references: [id])
-  
+  id         String  @id @default(uuid())
+  proposalId Int
+  voterId    String
+  voter      Company @relation(fields: [voterId], references: [id])
+
   support     Boolean
   votingPower Int
-  
+
   // Blockchain reference
-  txHash      String?  @unique
-  
-  createdAt   DateTime @default(now())
-  
+  txHash String? @unique
+
+  createdAt DateTime @default(now())
+
   @@unique([proposalId, voterId])
   @@index([proposalId])
   @@index([voterId])
@@ -186,16 +229,238 @@ model Vote {
 
 // Analytics snapshots
 model Analytics {
-  id                    String   @id @default(uuid())
-  
-  totalCompanies        Int
-  totalActions          Int
-  totalCreditsIssued    Int
-  totalBadgesMinted     Int
-  totalStaked           Int
-  totalMarketVolume     String
-  
-  snapshotDate          DateTime @default(now())
-  
+  id String @id @default(uuid())
+
+  totalCompanies     Int
+  totalActions       Int
+  totalCreditsIssued Int
+  totalBadgesMinted  Int
+  totalStaked        Int
+  totalMarketVolume  String
+
+  snapshotDate DateTime @default(now())
+
   @@index([snapshotDate])
+}
+
+// Action type definitions (configurable from database)
+model ActionType {
+  id String @id @default(uuid())
+
+  type                  String  @unique // e.g., "tree_planting", "renewable_energy"
+  label                 String // Display name: "Reforestation & Tree Planting"
+  description           String?
+  unit                  String // e.g., "trees", "kW", "kg"
+  minCreditsPerUnit     Int     @default(0)
+  maxCreditsPerUnit     Int     @default(0)
+  defaultCreditsPerUnit Int     @default(0) // Used if min/max are same
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([active])
+}
+
+// Badge definitions (templates)
+model BadgeDefinition {
+  id String @id @default(uuid())
+
+  name        String
+  description String
+  tier        BadgeTier
+  icon        String? // Icon identifier or URL
+  imageUrl    String?
+
+  creditsRequired Int // Minimum credits needed to earn
+  criteria        String? // JSON string with additional criteria
+
+  active       Boolean @default(true)
+  displayOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  earnedBadges EarnedBadge[]
+
+  @@index([tier])
+  @@index([active])
+  @@index([displayOrder])
+}
+
+enum BadgeTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// Badges earned by companies
+model EarnedBadge {
+  id String @id @default(uuid())
+
+  badgeId String
+  badge   BadgeDefinition @relation(fields: [badgeId], references: [id])
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Blockchain reference (NFT token ID)
+  tokenId Int? @unique
+
+  // Blockchain reference
+  txHash String? @unique
+
+  earnedAt DateTime @default(now())
+
+  @@unique([badgeId, companyId])
+  @@index([companyId])
+  @@index([badgeId])
+  @@index([earnedAt])
+}
+
+// Leaderboard snapshot (cached for performance)
+model Leaderboard {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  totalCredits Int @default(0)
+  totalActions Int @default(0)
+  totalBadges  Int @default(0)
+
+  rank         Int
+  previousRank Int? // For calculating rank change
+
+  period       LeaderboardPeriod @default(ALL_TIME)
+  snapshotDate DateTime          @default(now())
+
+  @@unique([companyId, period, snapshotDate])
+  @@index([period, rank])
+  @@index([snapshotDate])
+  @@index([companyId])
+}
+
+enum LeaderboardPeriod {
+  ALL_TIME
+  MONTHLY
+  WEEKLY
+  DAILY
+}
+
+// Predefined industries / verticals to eliminate hardcoded options
+model Industry {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companies Company[] @relation("CompanyIndustry")
+
+  @@index([name])
+}
+
+// Global platform settings / feature flags / numeric targets
+model PlatformSetting {
+  id          String           @id @default(uuid())
+  key         String           @unique
+  label       String?
+  description String?
+  value       String
+  valueType   SettingValueType @default(STRING)
+  metadata    Json?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// Call-to-action cards surfaced on dashboards instead of hardcoded arrays
+model QuickAction {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  icon        String?
+  route       String
+  audience    AudienceScope @default(GLOBAL)
+  isPrimary   Boolean       @default(false)
+  order       Int           @default(0)
+  metadata    Json?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([audience])
+  @@index([isActive])
+  @@index([order])
+}
+
+// Operational / compliance guidelines shown across dashboards
+model Guideline {
+  id           String            @id @default(uuid())
+  title        String
+  description  String
+  icon         String?
+  category     GuidelineCategory @default(GENERAL)
+  audience     AudienceScope     @default(GLOBAL)
+  displayOrder Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([category])
+  @@index([audience])
+  @@index([isActive])
+}
+
+// FAQ / knowledge base entries (also removes hardcoded UI content)
+model Faq {
+  id           String        @id @default(uuid())
+  question     String
+  answer       String
+  category     String?
+  audience     AudienceScope @default(GLOBAL)
+  displayOrder Int           @default(0)
+  isActive     Boolean       @default(true)
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([audience])
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+enum AudienceScope {
+  GLOBAL
+  COMPANY
+  VERIFIER
+  AUDITOR
+  ADMIN
+}
+
+enum GuidelineCategory {
+  GENERAL
+  PLATFORM
+  VERIFICATION
+  AUDIT
+  MARKETPLACE
+  STAKING
+  GOVERNANCE
+  SECURITY
+  OTHER
+}
+
+enum SettingValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }

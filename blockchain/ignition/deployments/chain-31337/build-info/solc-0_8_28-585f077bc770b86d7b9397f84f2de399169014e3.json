@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-585f077bc770b86d7b9397f84f2de399169014e3",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/EcoBadgeNFT.sol": "project/contracts/EcoBadgeNFT.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/EcoBadgeNFT.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n/// @title EcoBadgeNFT - Minimal ERC721-like NFT with baseURI metadata\ncontract EcoBadgeNFT {\n    string public name = \"EcoBadge\";\n    string public symbol = \"ECOB\";\n\n    string public baseURI;\n    address public owner;\n\n    mapping(uint256 => address) private _ownerOf;\n    mapping(address => uint256) private _balanceOf;\n    // naive owner enumeration for demo (not updated on transfers)\n    mapping(address => uint256[]) private _ownedTokens;\n    mapping(uint256 => address) public getApproved;\n    mapping(address => mapping(address => bool)) public isApprovedForAll;\n\n    uint256 public nextId = 1;\n\n    event Transfer(address indexed from, address indexed to, uint256 indexed id);\n    event Approval(address indexed owner, address indexed spender, uint256 indexed id);\n    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"only owner\");\n        _;\n    }\n\n    constructor(string memory base) {\n        owner = msg.sender;\n        baseURI = base;\n    }\n\n    function setBaseURI(string calldata base) external onlyOwner {\n        baseURI = base;\n    }\n\n    function tokenURI(uint256 id) public view returns (string memory) {\n        require(_ownerOf[id] != address(0), \"not minted\");\n        return string(abi.encodePacked(baseURI, _toString(id)));\n    }\n\n    function balanceOf(address account) external view returns (uint256) {\n        require(account != address(0), \"zero addr\");\n        return _balanceOf[account];\n    }\n\n    function ownerOf(uint256 id) public view returns (address) {\n        address o = _ownerOf[id];\n        require(o != address(0), \"not minted\");\n        return o;\n    }\n\n    function approve(address spender, uint256 id) external {\n        address o = ownerOf(id);\n        require(msg.sender == o || isApprovedForAll[o][msg.sender], \"not authorized\");\n        getApproved[id] = spender;\n        emit Approval(o, spender, id);\n    }\n\n    function setApprovalForAll(address operator, bool approved) external {\n        isApprovedForAll[msg.sender][operator] = approved;\n        emit ApprovalForAll(msg.sender, operator, approved);\n    }\n\n    function transferFrom(address from, address to, uint256 id) public {\n        require(from == ownerOf(id), \"from not owner\");\n        require(to != address(0), \"to zero\");\n        require(\n            msg.sender == from ||\n            msg.sender == getApproved[id] ||\n            isApprovedForAll[from][msg.sender],\n            \"not authorized\"\n        );\n        delete getApproved[id];\n        _balanceOf[from] -= 1;\n        _balanceOf[to] += 1;\n        _ownerOf[id] = to;\n        emit Transfer(from, to, id);\n    }\n\n    function safeMint(address to) external onlyOwner returns (uint256) {\n        require(to != address(0), \"to zero\");\n        uint256 id = nextId++;\n        _ownerOf[id] = to;\n        _balanceOf[to] += 1;\n        _ownedTokens[to].push(id);\n        emit Transfer(address(0), to, id);\n        return id;\n    }\n\n    // minimal enumeration for frontend queries (not updated on transfer)\n    function tokenOfOwnerByIndex(address owner_, uint256 index) external view returns (uint256) {\n        require(index < _ownedTokens[owner_].length, \"index oob\");\n        return _ownedTokens[owner_][index];\n    }\n\n    function _toString(uint256 value) internal pure returns (string memory) {\n        if (value == 0) return \"0\";\n        uint256 temp = value;\n        uint256 digits;\n        while (temp != 0) {\n            digits++;\n            temp /= 10;\n        }\n        bytes memory buffer = new bytes(digits);\n        while (value != 0) {\n            digits -= 1;\n            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));\n            value /= 10;\n        }\n        return string(buffer);\n    }\n}\n\n\n"
+      }
+    }
+  }
+}

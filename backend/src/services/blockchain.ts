@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { logger } from '../utils/logger.js';
+import { getContractAddresses } from '../config/contract-addresses.js';
 
 // Contract ABIs (simplified - import full ABIs in production)
 const ERC20_ABI = [
@@ -30,18 +31,24 @@ class BlockchainService {
     private contracts: ContractAddresses;
 
     constructor() {
-        const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || 'http://localhost:8545';
+        // Auto-detect contract addresses from deployment artifacts - No .env needed!
+        const deployedAddresses = getContractAddresses(31337); // Default to local Hardhat network
+        
+        const rpcUrl = 'http://localhost:8545'; // Hardhat local network
         this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
         this.contracts = {
-            carbonCreditToken: process.env.CONTRACT_CARBON_CREDIT_TOKEN,
-            ecoBadgeNFT: process.env.CONTRACT_ECO_BADGE_NFT,
-            ecoLedgerV2: process.env.CONTRACT_ECO_LEDGER_V2,
-            marketplace: process.env.CONTRACT_MARKETPLACE,
-            staking: process.env.CONTRACT_STAKING,
-            governance: process.env.CONTRACT_GOVERNANCE,
-            leaderboard: process.env.CONTRACT_LEADERBOARD
+            // All addresses are automatically detected from deployment artifacts
+            carbonCreditToken: deployedAddresses.carbonCreditToken,
+            ecoBadgeNFT: deployedAddresses.ecoBadgeNFT,
+            ecoLedgerV2: deployedAddresses.ecoLedgerV2,
+            marketplace: deployedAddresses.marketplace,
+            staking: deployedAddresses.staking,
+            governance: deployedAddresses.governance,
+            leaderboard: deployedAddresses.leaderboard
         };
+        
+        logger.info('✅ Contract addresses auto-detected from deployment artifacts');
     }
 
     // Get company's carbon credit balance

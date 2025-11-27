@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest, getAuthenticatedWallet } from '../middleware/auth.js';
 import prisma from '../database/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -42,7 +42,7 @@ router.get('/stakes', async (req, res) => {
 
 // GET /api/staking/stakes/my - Get user's stakes (authenticated)
 router.get('/stakes/my', authenticateToken, async (req: AuthRequest, res) => {
-    const walletAddress = req.user!.walletAddress.toLowerCase();
+    const walletAddress = getAuthenticatedWallet(req);
 
     const company = await prisma.company.findUnique({
         where: { walletAddress }
@@ -65,8 +65,10 @@ router.post(
     '/stakes',
     authenticateToken,
     [
-        body('amount').isInt({ min: 1 }),
-        body('duration').isInt({ min: 1 })
+        body('amount').isFloat({ min: 0.01 }),
+        body('duration').isInt({ min: 1 }),
+        body('stakeId').optional().isInt(),
+        body('txHash').optional().isString()
     ],
     async (req: AuthRequest, res) => {
         const errors = validationResult(req);
@@ -74,8 +76,8 @@ router.post(
             throw new AppError('Validation failed', 400);
         }
 
-        const { amount, duration } = req.body;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const { amount, duration, stakeId, txHash } = req.body;
+        const walletAddress = getAuthenticatedWallet(req);
 
         const company = await prisma.company.findUnique({
             where: { walletAddress }
@@ -94,7 +96,9 @@ router.post(
                 amount,
                 duration,
                 startTime,
-                endTime
+                endTime,
+                stakeId,
+                txHash
             }
         });
 
@@ -108,7 +112,7 @@ router.put(
     authenticateToken,
     async (req: AuthRequest, res) => {
         const { id } = req.params;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const walletAddress = getAuthenticatedWallet(req);
 
         const stake = await prisma.stake.findUnique({
             where: { id },

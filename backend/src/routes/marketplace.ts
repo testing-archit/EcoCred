@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest, getAuthenticatedWallet } from '../middleware/auth.js';
 import prisma from '../database/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -11,10 +11,16 @@ router.get('/listings', async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const status = req.query.status as string || 'ACTIVE';
+    const sellerId = req.query.sellerId as string;
+
+    const where: any = { status: status as any };
+    if (sellerId) {
+        where.sellerId = sellerId;
+    }
 
     const [listings, total] = await Promise.all([
         prisma.listing.findMany({
-            where: { status: status as any },
+            where,
             skip: (page - 1) * limit,
             take: limit,
             orderBy: { createdAt: 'desc' },
@@ -29,7 +35,7 @@ router.get('/listings', async (req, res) => {
                 }
             }
         }),
-        prisma.listing.count({ where: { status: status as any } })
+        prisma.listing.count({ where })
     ]);
 
     res.json({
@@ -73,9 +79,8 @@ router.post(
     '/listings',
     authenticateToken,
     [
-        body('amount').isInt({ min: 1 }),
-        body('pricePerCredit').isString().notEmpty(),
-        body('totalPrice').isString().notEmpty()
+        body('listingId').optional().isInt(),
+        body('txHash').optional().isString()
     ],
     async (req: AuthRequest, res) => {
         const errors = validationResult(req);
@@ -83,8 +88,8 @@ router.post(
             throw new AppError('Validation failed', 400);
         }
 
-        const { amount, pricePerCredit, totalPrice } = req.body;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const { amount, pricePerCredit, totalPrice, listingId, txHash } = req.body;
+        const walletAddress = getAuthenticatedWallet(req);
 
         const company = await prisma.company.findUnique({
             where: { walletAddress }
@@ -100,7 +105,9 @@ router.post(
                 amount,
                 pricePerCredit,
                 totalPrice,
-                status: 'ACTIVE'
+                status: 'ACTIVE',
+                listingId,
+                txHash
             },
             include: {
                 seller: {
@@ -123,7 +130,7 @@ router.put(
     authenticateToken,
     async (req: AuthRequest, res) => {
         const { id } = req.params;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const walletAddress = getAuthenticatedWallet(req);
 
         const listing = await prisma.listing.findUnique({
             where: { id },

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest, getAuthenticatedWallet } from '../middleware/auth.js';
 import prisma from '../database/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -46,7 +46,7 @@ router.get('/votes', async (req, res) => {
 
 // GET /api/governance/votes/my - Get user's votes (authenticated)
 router.get('/votes/my', authenticateToken, async (req: AuthRequest, res) => {
-    const walletAddress = req.user!.walletAddress.toLowerCase();
+    const walletAddress = getAuthenticatedWallet(req);
 
     const company = await prisma.company.findUnique({
         where: { walletAddress }
@@ -71,7 +71,8 @@ router.post(
     [
         body('proposalId').isInt({ min: 0 }),
         body('support').isBoolean(),
-        body('votingPower').isInt({ min: 1 })
+        body('votingPower').isInt({ min: 1 }),
+        body('txHash').optional().isString()
     ],
     async (req: AuthRequest, res) => {
         const errors = validationResult(req);
@@ -79,8 +80,8 @@ router.post(
             throw new AppError('Validation failed', 400);
         }
 
-        const { proposalId, support, votingPower } = req.body;
-        const walletAddress = req.user!.walletAddress.toLowerCase();
+        const { proposalId, support, votingPower, txHash } = req.body;
+        const walletAddress = getAuthenticatedWallet(req);
 
         const company = await prisma.company.findUnique({
             where: { walletAddress }
@@ -109,7 +110,8 @@ router.post(
                 proposalId,
                 voterId: company.id,
                 support,
-                votingPower
+                votingPower,
+                txHash
             }
         });
 

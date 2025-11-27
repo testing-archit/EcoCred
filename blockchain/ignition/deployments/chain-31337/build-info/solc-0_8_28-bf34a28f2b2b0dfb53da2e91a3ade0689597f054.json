@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-bf34a28f2b2b0dfb53da2e91a3ade0689597f054",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/AccessControl.sol": "project/contracts/AccessControl.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/AccessControl.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n/// @title AccessControl - Role-based access control system\ncontract AccessControl {\n    enum Role {\n        NONE,\n        ADMIN,\n        VERIFIER,\n        MODERATOR\n    }\n\n    mapping(address => Role) public roles;\n    address public owner;\n\n    event RoleGranted(address indexed account, Role role);\n    event RoleRevoked(address indexed account, Role role);\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"only owner\");\n        _;\n    }\n\n    modifier onlyRole(Role role) {\n        require(hasRole(msg.sender, role), \"missing role\");\n        _;\n    }\n\n    constructor() {\n        owner = msg.sender;\n        roles[msg.sender] = Role.ADMIN;\n        emit RoleGranted(msg.sender, Role.ADMIN);\n    }\n\n    function hasRole(address account, Role role) public view returns (bool) {\n        return roles[account] == role;\n    }\n\n    function grantRole(address account, Role role) external onlyOwner {\n        require(account != address(0), \"zero address\");\n        require(role != Role.NONE, \"cannot grant NONE\");\n        \n        roles[account] = role;\n        emit RoleGranted(account, role);\n    }\n\n    function revokeRole(address account) external onlyOwner {\n        require(account != owner, \"cannot revoke owner\");\n        \n        roles[account] = Role.NONE;\n        emit RoleRevoked(account, Role.NONE);\n    }\n\n    function transferOwnership(address newOwner) external onlyOwner {\n        require(newOwner != address(0), \"zero address\");\n        require(newOwner != owner, \"same owner\");\n\n        address oldOwner = owner;\n        roles[oldOwner] = Role.NONE;\n        owner = newOwner;\n        roles[newOwner] = Role.ADMIN;\n\n        emit OwnershipTransferred(oldOwner, newOwner);\n        emit RoleRevoked(oldOwner, Role.NONE);\n        emit RoleGranted(newOwner, Role.ADMIN);\n    }\n}\n\n"
+      }
+    }
+  }
+}

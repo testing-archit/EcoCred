@@ -2,9 +2,11 @@
 pragma solidity ^0.8.28;
 
 import "./CarbonCreditToken.sol";
+import "./ReentrancyGuard.sol";
+import "./Pausable.sol";
 
 /// @title CarbonCreditMarketplace - P2P marketplace for trading carbon credits
-contract CarbonCreditMarketplace {
+contract CarbonCreditMarketplace is ReentrancyGuard, Pausable {
     struct Listing {
         address seller;
         uint256 amount;
@@ -14,7 +16,6 @@ contract CarbonCreditMarketplace {
     }
 
     CarbonCreditToken public creditToken;
-    address public owner;
     uint256 public feePercentage; // basis points (100 = 1%)
     uint256 public constant MAX_FEE = 1000; // 10%
 
@@ -26,20 +27,14 @@ contract CarbonCreditMarketplace {
     event ListingCancelled(uint256 indexed listingId);
     event PurchaseExecuted(uint256 indexed listingId, address indexed buyer, uint256 amount, uint256 totalPrice);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "only owner");
-        _;
-    }
-
     modifier onlySeller(uint256 listingId) {
         require(listings[listingId].seller == msg.sender, "only seller");
         _;
     }
 
-    constructor(address tokenAddress, uint256 initialFee) {
+    constructor(address tokenAddress, uint256 initialFee) Pausable() {
         require(tokenAddress != address(0), "token address 0");
         require(initialFee <= MAX_FEE, "fee too high");
-        owner = msg.sender;
         creditToken = CarbonCreditToken(tokenAddress);
         feePercentage = initialFee;
     }
@@ -49,7 +44,7 @@ contract CarbonCreditMarketplace {
         feePercentage = newFee;
     }
 
-    function createListing(uint256 amount, uint256 pricePerCredit) external returns (uint256) {
+    function createListing(uint256 amount, uint256 pricePerCredit) external nonReentrant whenNotPaused returns (uint256) {
         require(amount > 0, "amount > 0");
         require(pricePerCredit > 0, "price > 0");
         require(creditToken.balanceOf(msg.sender) >= amount, "insufficient balance");
@@ -72,7 +67,7 @@ contract CarbonCreditMarketplace {
         return listingId;
     }
 
-    function purchase(uint256 listingId, uint256 amount) external payable {
+    function purchase(uint256 listingId, uint256 amount) external payable nonReentrant whenNotPaused {
         Listing storage listing = listings[listingId];
         require(listing.active, "listing inactive");
         require(listing.amount >= amount, "insufficient listing");
@@ -105,7 +100,7 @@ contract CarbonCreditMarketplace {
         emit PurchaseExecuted(listingId, msg.sender, amount, totalPrice);
     }
 
-    function cancelListing(uint256 listingId) external onlySeller(listingId) {
+    function cancelListing(uint256 listingId) external nonReentrant onlySeller(listingId) whenNotPaused {
         Listing storage listing = listings[listingId];
         require(listing.active, "already cancelled");
 

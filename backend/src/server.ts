@@ -2,9 +2,9 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { config } from './config/app.js';
 
 // Import routes
 import companiesRouter from './routes/companies.js';
@@ -14,17 +14,19 @@ import marketplaceRouter from './routes/marketplace.js';
 import stakingRouter from './routes/staking.js';
 import governanceRouter from './routes/governance.js';
 import authRouter from './routes/auth.js';
+import actionTypesRouter from './routes/action-types.js';
+import badgesRouter from './routes/badges.js';
+import leaderboardRouter from './routes/leaderboard.js';
+import referenceDataRouter from './routes/reference-data.js';
 
-// Load environment variables
-dotenv.config();
-
+// No .env files needed - using automatic configuration!
 const app: Express = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.PORT;
 
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: config.CORS_ORIGIN,
     credentials: true
 }));
 app.use(express.json());
@@ -44,6 +46,10 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/marketplace', marketplaceRouter);
 app.use('/api/staking', stakingRouter);
 app.use('/api/governance', governanceRouter);
+app.use('/api/action-types', actionTypesRouter);
+app.use('/api/badges', badgesRouter);
+app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/reference', referenceDataRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -56,8 +62,9 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, () => {
     logger.info(`🚀 EcoCred API server running on port ${PORT}`);
-    logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+    logger.info(`📊 Environment: ${config.NODE_ENV}`);
+    logger.info(`🌐 CORS enabled for: ${config.CORS_ORIGIN}`);
+    logger.info(`✅ No .env files needed - using automatic configuration!`);
 });
 
 export default app;

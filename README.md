@@ -167,18 +167,12 @@ Frontend will run on `http://localhost:5173`
 DATABASE_URL=postgresql://...
 JWT_SECRET=your-secret-key
 BLOCKCHAIN_RPC_URL=http://localhost:8545
-CONTRACT_CARBON_CREDIT_TOKEN=0x...
-CONTRACT_ECO_LEDGER_V2=0x...
-# ... other contract addresses
+# Contract addresses are auto-detected - no need to set them manually!
 ```
 
-**Frontend** (`frontend/.env.local`)
-```env
-VITE_API_URL=http://localhost:3001/api
-VITE_CONTRACT_ADDRESS_CARBON=0x...
-VITE_CONTRACT_ADDRESS_BADGE=0x...
-VITE_CONTRACT_ADDRESS_LEDGER=0x...
-```
+**Frontend** - No `.env` files needed!
+- Contract addresses are automatically detected from deployment artifacts
+- See `DEPLOYMENT_AUTO.md` for details
 
 ---
 
@@ -249,10 +243,10 @@ npm run check
 ```bash
 cd blockchain
 npm run deploy:sepolia
+npm run export:addresses  # Auto-export addresses
 ```
 
-2. **Update Environment Variables**
-- Copy deployed contract addresses to backend and frontend `.env` files
+Contract addresses are automatically detected - no manual configuration needed!
 
 3. **Deploy Backend**
 - Use Vercel, Railway, or any Node.js hosting

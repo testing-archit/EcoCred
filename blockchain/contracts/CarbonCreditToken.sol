@@ -18,6 +18,7 @@ contract CarbonCreditToken {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event MinterUpdated(address indexed newMinter);
+    event Burn(address indexed from, uint256 value);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "only owner");
@@ -68,6 +69,39 @@ contract CarbonCreditToken {
         totalSupply += amount;
         balanceOf[to] += amount;
         emit Transfer(address(0), to, amount);
+    }
+
+    /// @notice Burn tokens (remove from supply permanently)
+    /// @param amount Amount of tokens to burn
+    function burn(uint256 amount) external {
+        require(balanceOf[msg.sender] >= amount, "insufficient balance");
+        unchecked {
+            balanceOf[msg.sender] -= amount;
+            totalSupply -= amount;
+        }
+        emit Burn(msg.sender, amount);
+        emit Transfer(msg.sender, address(0), amount);
+    }
+
+    /// @notice Burn tokens from another address (requires allowance)
+    /// @param from Address to burn tokens from
+    /// @param amount Amount of tokens to burn
+    function burnFrom(address from, uint256 amount) external {
+        uint256 allowed = allowance[from][msg.sender];
+        require(allowed >= amount, "insufficient allowance");
+        require(balanceOf[from] >= amount, "insufficient balance");
+        
+        if (allowed != type(uint256).max) {
+            allowance[from][msg.sender] = allowed - amount;
+            emit Approval(from, msg.sender, allowance[from][msg.sender]);
+        }
+        
+        unchecked {
+            balanceOf[from] -= amount;
+            totalSupply -= amount;
+        }
+        emit Burn(from, amount);
+        emit Transfer(from, address(0), amount);
     }
 
     function _transfer(address from, address to, uint256 amount) internal {

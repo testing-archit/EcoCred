@@ -2,9 +2,11 @@
 pragma solidity ^0.8.28;
 
 import "./CarbonCreditToken.sol";
+import "./ReentrancyGuard.sol";
+import "./Pausable.sol";
 
 /// @title CreditStaking - Staking mechanism for carbon credits with rewards
-contract CreditStaking {
+contract CreditStaking is ReentrancyGuard, Pausable {
     struct Stake {
         uint256 amount;
         uint256 timestamp;
@@ -13,7 +15,6 @@ contract CreditStaking {
     }
 
     CarbonCreditToken public creditToken;
-    address public owner;
     address public minter; // Address that can mint rewards (should be set to this contract or a reward pool)
     
     uint256 public rewardRate; // basis points per year (100 = 1%)
@@ -31,15 +32,9 @@ contract CreditStaking {
     event Unstaked(address indexed user, uint256 indexed stakeId, uint256 amount, uint256 reward);
     event RewardClaimed(address indexed user, uint256 amount);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "only owner");
-        _;
-    }
-
-    constructor(address tokenAddress, uint256 initialRewardRate) {
+    constructor(address tokenAddress, uint256 initialRewardRate) Pausable() {
         require(tokenAddress != address(0), "token address 0");
         require(initialRewardRate <= MAX_REWARD_RATE, "rate too high");
-        owner = msg.sender;
         creditToken = CarbonCreditToken(tokenAddress);
         rewardRate = initialRewardRate;
         // Note: minter should be set to this contract address after deployment
@@ -55,7 +50,7 @@ contract CreditStaking {
         rewardRate = newRate;
     }
 
-    function stake(uint256 amount, uint256 lockPeriodInDays) external {
+    function stake(uint256 amount, uint256 lockPeriodInDays) external nonReentrant whenNotPaused {
         require(amount > 0, "amount > 0");
         require(lockPeriodInDays > 0, "lock period > 0");
         require(creditToken.balanceOf(msg.sender) >= amount, "insufficient balance");
@@ -78,7 +73,7 @@ contract CreditStaking {
         emit Staked(msg.sender, stakes[msg.sender].length - 1, amount, lockPeriod);
     }
 
-    function unstake(uint256 stakeIndex) external {
+    function unstake(uint256 stakeIndex) external nonReentrant whenNotPaused {
         require(stakeIndex < stakes[msg.sender].length, "invalid index");
         
         Stake storage userStake = stakes[msg.sender][stakeIndex];

@@ -1,4 +1,4 @@
-import { PrismaClient, ActionStatus, ListingStatus } from '@prisma/client';
+import { PrismaClient, ActionStatus, ListingStatus, Company, Action as PrismaAction } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -267,7 +267,7 @@ async function seed() {
 
         // Create companies
         console.log('🏢 Creating companies...');
-        const createdCompanies = [];
+        const createdCompanies: Company[] = [];
         for (const company of companies) {
             const created = await prisma.company.create({
                 data: company
@@ -279,7 +279,7 @@ async function seed() {
 
         // Create actions
         console.log('🌱 Creating eco actions...');
-        const createdActions = [];
+        const createdActions: PrismaAction[] = [];
         for (const action of actions) {
             const created = await prisma.action.create({
                 data: {
