@@ -232,7 +232,15 @@ async function checkAndSeed() {
         const companyCount = await prisma.company.count();
         if (companyCount === 0) {
             console.log('🏢 Seeding companies...');
-            const createdCompanies = [];
+
+            type CreatedCompany = {
+                id: string;
+                name: string;
+                walletAddress: string;
+                [key: string]: unknown;
+            };
+            const createdCompanies: CreatedCompany[] = [];
+
             for (const company of companies) {
                 // Find or create industry
                 let industryRecord = await prisma.industry.findFirst({
@@ -306,7 +314,7 @@ async function checkAndSeed() {
             console.log('🏅 Seeding earned badges...');
             const allCompanies = await prisma.company.findMany();
             const allBadges = await prisma.badgeDefinition.findMany({ where: { active: true } });
-            
+
             if (allCompanies.length > 0 && allBadges.length > 0) {
                 // Get total credits per company from actions
                 const companiesWithCredits = await prisma.company.findMany({
@@ -320,7 +328,7 @@ async function checkAndSeed() {
                 let seededCount = 0;
                 for (const company of companiesWithCredits) {
                     const totalCredits = company.actions.reduce((sum, action) => sum + action.creditsAwarded, 0);
-                    
+
                     // Award badges based on credits earned
                     for (const badge of allBadges) {
                         if (totalCredits >= badge.creditsRequired) {
@@ -333,7 +341,7 @@ async function checkAndSeed() {
                                     }
                                 }
                             });
-                            
+
                             if (!existing) {
                                 await prisma.earnedBadge.create({
                                     data: {
@@ -392,7 +400,7 @@ async function checkAndSeed() {
                 for (let i = 0; i < companyStats.length; i++) {
                     const stat = companyStats[i];
                     const rank = i + 1;
-                    
+
                     await prisma.leaderboard.create({
                         data: {
                             companyId: stat.company.id,
@@ -412,11 +420,11 @@ async function checkAndSeed() {
                 console.log('   Creating monthly leaderboard...');
                 const monthlyStats = [...companyStats];
                 monthlyStats.sort((a, b) => b.totalCredits - a.totalCredits);
-                
+
                 for (let i = 0; i < monthlyStats.length; i++) {
                     const stat = monthlyStats[i];
                     const rank = i + 1;
-                    
+
                     await prisma.leaderboard.create({
                         data: {
                             companyId: stat.company.id,

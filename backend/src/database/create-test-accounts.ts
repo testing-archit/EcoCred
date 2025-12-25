@@ -34,7 +34,7 @@ const TEST_ACCOUNTS = [
 async function createTestAccounts() {
     console.log('🚀 Creating test accounts...\n');
 
-    const createdAccounts = [];
+    const createdAccounts: Array<typeof TEST_ACCOUNTS[number] & { exists?: boolean; userId?: string }> = [];
 
     for (const account of TEST_ACCOUNTS) {
         try {
@@ -54,7 +54,7 @@ async function createTestAccounts() {
                 console.log(`   Password: ${account.password}`);
                 console.log(`   Wallet: ${account.walletAddress}`);
                 console.log(`   Role: ${account.role}\n`);
-                
+
                 createdAccounts.push({
                     ...account,
                     exists: true
