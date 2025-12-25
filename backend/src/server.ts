@@ -79,12 +79,15 @@ process.on('uncaughtException', (error: Error) => {
     // In production, you might want to exit gracefully
 });
 
-// Start server
-app.listen(PORT, () => {
-    logger.info(`🚀 EcoCred API server running on port ${PORT}`);
-    logger.info(`📊 Environment: ${config.NODE_ENV}`);
-    logger.info(`🌐 CORS enabled for: ${config.CORS_ORIGIN}`);
-    logger.info(`✅ No .env files needed - using automatic configuration!`);
-});
+// Start server only if not in Vercel (Vercel will use the exported app)
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        logger.info(`🚀 EcoCred API server running on port ${PORT}`);
+        logger.info(`📊 Environment: ${config.NODE_ENV}`);
+        logger.info(`🌐 CORS enabled for: ${config.CORS_ORIGIN}`);
+        logger.info(`✅ No .env files needed - using automatic configuration!`);
+    });
+}
 
 export default app;
+
