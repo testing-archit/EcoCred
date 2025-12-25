@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate --schema=src/database/schema.prisma && tsc",
+    "postinstall": "prisma generate --schema=src/database/schema.prisma",
     "start": "node dist/server.js",
     "deploy:hardhat": "hardhat ignition deploy ignition/modules/EcoSystemV2.ts --network hardhatMainnet",
     "deploy:sepolia": "hardhat ignition deploy ignition/modules/EcoSystemV2.ts --network sepolia",
