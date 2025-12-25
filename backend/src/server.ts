@@ -3,8 +3,15 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { logger } from './utils/logger.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import { errorHandler, ApiError } from './middleware/errorHandler.js';
 import { config } from './config/app.js';
+
+// Async error wrapper to catch errors in async route handlers
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        Promise.resolve(fn(req, res, next)).catch(next);
+    };
+};
 
 // Import routes
 import companiesRouter from './routes/companies.js';
@@ -58,6 +65,19 @@ app.use((req: Request, res: Response) => {
 
 // Error handler (must be last)
 app.use(errorHandler);
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+    logger.error('Unhandled Rejection at:', { promise, reason });
+    // Don't exit the process, just log the error
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+    logger.error('Uncaught Exception:', error);
+    // Don't exit the process, just log the error
+    // In production, you might want to exit gracefully
+});
 
 // Start server
 app.listen(PORT, () => {

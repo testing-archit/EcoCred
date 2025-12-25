@@ -44,11 +44,14 @@ A comprehensive blockchain-powered platform that brings **transparency, accounta
 - JWT + MetaMask signature auth
 
 **Frontend**
-- SvelteKit 5.0
+- React 19
 - TypeScript
-- TailwindCSS with dark mode
-- Lucide icons
+- Vite build tool
+- React Router for routing
+- TailwindCSS 4 with dark mode
+- Lucide React icons
 - Recharts for data visualization
+- Framer Motion for animations
 
 ### Smart Contracts
 
@@ -114,19 +117,52 @@ Backend will run on `http://localhost:3001`
 ### 4. Setup Frontend
 
 ```bash
-cd ../frontend
+cd ../frontend-react
 npm install
 
-# Update contract addresses in .env.local
-# VITE_CONTRACT_ADDRESS_CARBON=<address>
-# VITE_CONTRACT_ADDRESS_BADGE=<address>
-# VITE_CONTRACT_ADDRESS_LEDGER=<address>
+# Contract addresses are auto-detected!
+# No manual configuration needed
 
 # Start development server
 npm run dev
 ```
 
 Frontend will run on `http://localhost:5173`
+
+### 5. Quick Start (Alternative)
+
+Use our automated setup script:
+
+```bash
+# Install all dependencies
+bash scripts/setup.sh
+
+# Start all services (follow the printed instructions)
+bash scripts/start-dev.sh
+```
+
+---
+
+## 👥 Role-Based Dashboards
+
+The platform features distinct interfaces for different user roles:
+
+### For Companies (COMPANY Role)
+- **Dashboard**: Track carbon credits, badges, actions, and leaderboard ranking
+- **Features**: Submit eco actions, trade credits on marketplace, stake for rewards, vote on proposals
+- **Access**: Full platform access
+
+### For Verifiers (VERIFIER Role)
+- **Dashboard**: Pending verifications, approval statistics, verification rate
+- **Features**: Review and approve/reject eco actions with multi-verifier consensus
+- **Access**: Action verification, company directory, analytics
+
+### For Auditors (AUDITOR Role)
+- **Dashboard**: Audit statistics, flagged items, compliance metrics
+- **Features**: Monitor platform activities, review actions for compliance
+- **Access**: All actions, companies, governance, analytics
+
+See `ROLE_BASED_UI.md` for detailed documentation.
 
 ---
 
@@ -215,57 +251,94 @@ Full API documentation: See `backend/README.md`
 
 ## 🧪 Testing
 
-### Smart Contracts
+### Automated Testing Suite
+
+Run all tests across the platform:
 ```bash
-cd blockchain
-npm run test
+bash scripts/test-all.sh
 ```
 
-### Backend
+This runs:
+- ✓ Blockchain contract tests
+- ✓ Contract compilation validation
+- ✓ Backend TypeScript build
+- ✓ Backend type checking
+- ✓ Frontend production build
+- ✓ Frontend lint checks
+
+### Individual Test Suites
+
+**Smart Contracts**:
+```bash
+cd blockchain
+npm test                    # All tests
+npm run test:coverage       # With coverage
+npm run test:token          # Token tests only
+npm run test:ledger         # Ledger tests only
+npm run test:integration    # Integration tests
+```
+
+**Backend**:
 ```bash
 cd backend
 npm run test
+npm run test:coverage
 ```
 
-### Frontend
+**Frontend**:
 ```bash
-cd frontend
-npm run check
+cd frontend-react
+npm run build              # Production build test
+npm run lint               # Code quality check
 ```
 
 ---
 
 ## 🚢 Deployment
 
-### Testnet Deployment (Sepolia)
+### Quick Deploy to Testnet (Sepolia)
 
-1. **Deploy Contracts**
+**1. Deploy Smart Contracts**
 ```bash
 cd blockchain
-npm run deploy:sepolia
-npm run export:addresses  # Auto-export addresses
+npm run deploy:sepolia:v3    # Deploys all contracts
+npm run export:addresses     # Auto-exports addresses
 ```
 
-Contract addresses are automatically detected - no manual configuration needed!
+**2. Initialize Platform**
+```bash
+# Grant verifier roles and set parameters
+ACCESS_CONTROL_ADDRESS=0x... ECO_LEDGER_ADDRESS=0x... \
+npx hardhat run scripts/initialize-platform.ts --network sepolia
+```
 
-3. **Deploy Backend**
-- Use Vercel, Railway, or any Node.js hosting
-- Set environment variables
-- Run database migrations
+**3. Deploy Backend** (Vercel example)
+```bash
+cd backend
+vercel --prod
+# Set environment variables in Vercel dashboard
+```
 
-4. **Deploy Frontend**
-- Use Vercel, Netlify, or similar
-- Set environment variables
-- Build and deploy
+**4. Deploy Frontend** (Vercel example)
+```bash
+cd frontend-react
+vercel --prod
+# Contract addresses auto-detected!
+```
 
-### Mainnet Deployment
+### Production Deployment Guide
+
+For complete production deployment instructions, see:
+- **`DEPLOYMENT_GUIDE.md`** - Step-by-step deployment guide
+- **`SECURITY.md`** - Security checklist and best practices
 
 ⚠️ **Before mainnet deployment:**
-- Complete security audit
-- Test thoroughly on testnet
-- Review all contract parameters
-- Implement multi-sig for admin functions
-- Set up monitoring and alerts
+- [ ] Complete professional security audit
+- [ ] Test thoroughly on testnet (minimum 2 weeks)
+- [ ] Review all contract parameters
+- [ ] Implement multi-sig for admin functions
+- [ ] Set up monitoring and alerts
+- [ ] Document incident response procedures
 
 ---
 
@@ -309,6 +382,27 @@ See `backend/src/database/schema.prisma` for full schema.
 
 ---
 
+## 🛠️ Utility Scripts
+
+New helper scripts for development and deployment:
+
+```bash
+# Automated setup - installs all dependencies
+bash scripts/setup.sh
+
+# Development environment guide
+bash scripts/start-dev.sh
+
+# Comprehensive test suite
+bash scripts/test-all.sh
+
+# Platform initialization (after deployment)
+ACCESS_CONTROL_ADDRESS=0x... ECO_LEDGER_ADDRESS=0x... \
+npx hardhat run blockchain/scripts/initialize-platform.ts
+```
+
+---
+
 ## 📈 Roadmap
 
 - [ ] Email notifications for verifications
@@ -319,6 +413,8 @@ See `backend/src/database/schema.prisma` for full schema.
 - [ ] Corporate dashboard with team management
 - [ ] API webhooks for integrations
 - [ ] Advanced analytics and reporting
+- [ ] Contract upgradeability (proxy patterns)
+- [ ] Insurance mechanisms for marketplace
 
 ---
 
@@ -338,11 +434,16 @@ This project is licensed under the MIT License.
 
 ---
 
-## 🆘 Support
+## 🆘 Support & Documentation
 
-- **Documentation**: See individual README files in `blockchain/`, `backend/`, and `frontend/`
-- **Smart Contracts**: See `blockchain/CONTRACTS_SUMMARY.md`
-- **Deployment**: See `blockchain/DEPLOYMENT_GUIDE.md`
+- **Setup Guide**: See `scripts/setup.sh` for automated installation
+- **Frontend**: See `frontend-react/README.md` for React app documentation
+- **Backend**: See `backend/README.md` for API documentation  
+- **Smart Contracts**: See `PROJECT_DOCUMENTATION.md` and `SMART_CONTRACTS_DOCUMENTATION.md`
+- **Deployment**: See `DEPLOYMENT_GUIDE.md` for production deployment
+- **Security**: See `SECURITY.md` for security features and best practices
+- **Contributing**: See `CONTRIBUTING.md` for contribution guidelines
+- **Role-Based UI**: See `ROLE_BASED_UI.md` for dashboard documentation
 
 ---
 
@@ -357,5 +458,5 @@ Built with ❤️ for a sustainable future.
 
 ---
 
-**Version**: 2.0.0  
-**Last Updated**: November 2024
+**Version**: 2.1.0  
+**Last Updated**: December 2024

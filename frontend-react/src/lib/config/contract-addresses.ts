@@ -1,7 +1,7 @@
 /**
  * Auto-generated contract addresses from deployment artifacts
  * DO NOT EDIT MANUALLY - This file is auto-generated
- * Generated on: 2025-11-26T07:23:18.871Z
+ * Generated on: 2025-11-27T10:10:54.278Z
  * Chain ID: 31337
  */
 
