@@ -1,4 +1,6 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
+
+const { ethers } = await network.connect();
 
 /**
  * Platform Initialization Script
@@ -53,11 +55,14 @@ async function main() {
     // Add more verifier addresses here
   ];
 
+  // Role enum value: 0=NONE, 1=ADMIN, 2=VERIFIER, 3=MODERATOR
+  const VERIFIER_ROLE = 2;
+
   for (const verifierAddress of VERIFIER_ADDRESSES) {
     try {
       const hasRole = await AccessControl.hasRole(
-        await AccessControl.VERIFIER_ROLE(),
-        verifierAddress
+        verifierAddress,
+        VERIFIER_ROLE
       );
 
       if (hasRole) {
@@ -65,7 +70,7 @@ async function main() {
         continue;
       }
 
-      const tx = await AccessControl.grantVerifierRole(verifierAddress);
+      const tx = await AccessControl.grantRole(verifierAddress, VERIFIER_ROLE);
       await tx.wait();
       console.log(`   ✅ Granted VERIFIER role to ${verifierAddress}`);
     } catch (error) {
@@ -101,10 +106,11 @@ async function main() {
   // ============================================================================
   console.log("🔍 Validating deployment...");
 
-  // Check admin role
+  // Check admin role (Role.ADMIN = 1)
+  const ADMIN_ROLE = 1;
   const hasAdminRole = await AccessControl.hasRole(
-    await AccessControl.DEFAULT_ADMIN_ROLE(),
-    deployer.address
+    deployer.address,
+    ADMIN_ROLE
   );
   console.log(`   ${hasAdminRole ? "✅" : "❌"} Deployer has admin role:`, hasAdminRole);
 

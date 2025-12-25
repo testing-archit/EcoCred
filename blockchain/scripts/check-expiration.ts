@@ -1,4 +1,7 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
+import type { EventLog } from "ethers";
+
+const { ethers } = await network.connect();
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -31,8 +34,19 @@ async function main() {
   console.log("Transaction hash:", tx.hash);
 
   const receipt = await tx.wait();
-  const expiredEvent = receipt.logs.find((log: any) => log.eventName === "CreditsExpired");
-  if (expiredEvent) {
+
+  if (!receipt) {
+    console.log("Transaction receipt is null");
+    return;
+  }
+
+  // Find the CreditsExpired event and check if it's an EventLog with args
+  const expiredEvent = receipt.logs.find(
+    (log): log is EventLog =>
+      'eventName' in log && log.eventName === "CreditsExpired"
+  );
+
+  if (expiredEvent && expiredEvent.args) {
     console.log(`Expired ${ethers.formatEther(expiredEvent.args.amount)} credits`);
   } else {
     console.log("No credits expired at this time");

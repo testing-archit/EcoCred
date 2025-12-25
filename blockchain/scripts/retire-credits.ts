@@ -1,4 +1,6 @@
-import { ethers } from "hardhat";
+import { network } from "hardhat";
+
+const { ethers } = await network.connect();
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -25,7 +27,12 @@ async function main() {
   console.log("Transaction hash:", tx.hash);
 
   const receipt = await tx.wait();
-  console.log("Retirement successful! Retirement ID:", receipt.logs[0].args[0].toString());
+  if (receipt && receipt.logs.length > 0) {
+    const log = receipt.logs[0] as any;
+    console.log("Retirement successful! Retirement ID:", log.args?.[0]?.toString() || "Unknown");
+  } else {
+    console.log("Retirement transaction completed but no event logs found");
+  }
 }
 
 main()
