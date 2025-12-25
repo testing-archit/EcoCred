@@ -30,28 +30,54 @@ A comprehensive blockchain-powered platform that brings **transparency, accounta
 
 ### Tech Stack
 
-**Blockchain**
-- Solidity 0.8.28
-- Hardhat development environment
-- OpenZeppelin contracts
-- Ethers.js v6
+#### Blockchain Layer
+- **Solidity** `0.8.28` - Smart contract language
+- **Hardhat** `^3.0.6` - Ethereum development environment
+- **OpenZeppelin Contracts** - Secure, audited contract library
+- **Ethers.js** `v6.15.0` - Ethereum library for blockchain interaction
+- **Mocha & Chai** - Testing framework
+- **Hardhat Ignition** - Deployment management
 
-**Backend API**
-- Node.js + TypeScript
-- Express.js REST API
-- PostgreSQL (Neon) database
-- Prisma ORM
-- JWT + MetaMask signature auth
+#### Backend (API Server)
+- **Node.js** `18+` - JavaScript runtime
+- **TypeScript** `5.8.0` - Type-safe JavaScript
+- **Express.js** `4.21.2` - Web framework
+- **PostgreSQL** - Relational database (Neon serverless)
+- **Prisma ORM** `6.1.0` - Type-safe database client
+- **JWT** `jsonwebtoken 9.0.2` - Authentication tokens
+- **bcrypt** `6.0.0` - Password hashing
+- **Helmet** `8.0.0` - Security headers
+- **CORS** `2.8.5` - Cross-origin resource sharing
+- **Morgan** - HTTP request logger
+- **Winston** `3.17.0` - Application logging
 
-**Frontend**
-- React 19
-- TypeScript
-- Vite build tool
-- React Router for routing
-- TailwindCSS 4 with dark mode
-- Lucide React icons
-- Recharts for data visualization
-- Framer Motion for animations
+#### Frontend (Web Application)
+- **React** `19.2.0` - UI library
+- **TypeScript** `5.9.3` - Type-safe development
+- **Vite** `7.2.4` - Fast build tool & dev server
+- **React Router DOM** `7.9.6` - Client-side routing
+- **TailwindCSS** `4.1.17` - Utility-first CSS framework
+- **PostCSS** & **Autoprefixer** - CSS processing
+- **Lucide React** `0.554.0` - Modern icon library
+- **Recharts** `3.4.1` - Chart and data visualization
+- **Framer Motion** `11.18.2` - Animation library
+- **Ethers.js** `6.15.0` - Web3 integration
+- **clsx** & **tailwind-merge** - Utility class management
+
+#### Development & DevOps
+- **tsx** `4.19.2` - TypeScript execution for Node.js
+- **ESLint** `9.39.1` - Code linting
+- **Vitest** `2.1.8` - Fast unit testing
+- **Git** - Version control
+- **npm** - Package management
+
+#### Deployment & Hosting
+- **Vercel** - Recommended for frontend & backend
+- **Railway** / **Render** - Alternative backend hosting
+- **Netlify** - Alternative frontend hosting
+- **Neon** - Serverless PostgreSQL database
+- **Infura** / **Alchemy** - Ethereum RPC providers
+- **Etherscan** - Contract verification
 
 ### Smart Contracts
 
